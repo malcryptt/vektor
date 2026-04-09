@@ -1,6 +1,6 @@
 "use client";
 
-// Vektor Audit Workspace - Premium V3
+// Vektor Audit Workspace - Premium V3 (Vercel Sync Fix)
 
 import { useState, useRef, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
