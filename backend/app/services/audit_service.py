@@ -2,6 +2,7 @@ import os
 import re
 import json
 import asyncio
+import uuid
 from typing import List, Optional
 from openai import AsyncOpenAI
 from ..models.models import AuditFinding, AuditReport, AuditRequest
@@ -45,23 +46,24 @@ class AuditService:
         
         For EVERY finding, you MUST provide a 'suggested_fix_code' which is the corrected version of the code snippet.
         
+        ### EXAMPLE FINDING (JSON format):
+        {
+            "title": "Unchecked Account Ownership (Cashio Style)",
+            "description": "The program fails to verify the owner of the 'vault' account. An attacker can pass a fake account owned by their own program.",
+            "severity": "Critical",
+            "remediation": "Use the #[account(owner = ...)] constraint or manually verify account.owner == program_id.",
+            "exploit_scenario": "1. Attacker creates a malicious program that mimics a Vault account structure. 2. Attacker passes this malicious account to the 'withdraw' instruction. 3. The program reads the fake 'balance' and transfers real funds to the attacker.",
+            "line_start": 42,
+            "line_end": 42,
+            "code_snippet": "let vault_info = &ctx.accounts.vault;",
+            "suggested_fix_code": "let vault_info = &ctx.accounts.vault;\nif vault_info.owner != &crate::ID { return Err(ErrorCode::InvalidOwner.into()); }"
+        }
+
         Return ONLY a JSON object:
         {
             "overall_score": number,
             "summary": "string",
-            "findings": [
-                {
-                    "title": "string",
-                    "description": "string",
-                    "severity": "Critical|High|Medium|Low",
-                    "remediation": "Textual fix explanation",
-                    "exploit_scenario": "Detailed walkthrough of how an attacker would exploit this specific flaw",
-                    "line_start": number,
-                    "line_end": number,
-                    "code_snippet": "vulnerable line",
-                    "suggested_fix_code": "Corrected Rust code snippet"
-                }
-            ]
+            "findings": [ ... ]
         }
         
         Note: When calculating overall_score, use this weight: 
@@ -88,7 +90,7 @@ class AuditService:
             findings = [AuditFinding(**f) for f in data["findings"]]
             
             return AuditReport(
-                id=str(int(time.time())),
+                id=str(uuid.uuid4()),
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 contract_name=request.contract_name,
                 overall_score=data["overall_score"],
@@ -107,8 +109,10 @@ class AuditService:
         code_lines = request.code.split('\n')
         vulnerabilities = [
             {"title": "Missing Signer Check", "pattern": r"(?i)signer", "severity": "Critical", "remediation": "Add signer check.", "fix": "if !account.is_signer { return Err(ProgramError::MissingRequiredSignature.into()); }", "exploit": "Attacker calls the function with an account they do not own, bypassing authorization."},
-            {"title": "Integer Overflow", "pattern": r"[\+\-\*\/]", "severity": "High", "remediation": "Use checked math.", "fix": ".checked_add(amount).ok_or(error)? ", "exploit": "Attacker passes a large value to overflow the balance, resulting in unintended funds being credited."},
-            {"title": "Missing Ownership Check", "pattern": r"(?i)owner", "severity": "High", "remediation": "Verify account owner.", "fix": "if account.owner != program_id { return Err(ProgramError::IncorrectProgramId.into()); }", "exploit": "Attacker passes a fake account owned by a different program to spoof data."}
+            {"title": "Integer Overflow", "pattern": r"[\+\-\*\/](?!\.checked_)", "severity": "High", "remediation": "Use checked math.", "fix": ".checked_add(amount).ok_or(error)? ", "exploit": "Attacker passes a large value to overflow the balance, resulting in unintended funds being credited."},
+            {"title": "Missing Ownership Check", "pattern": r"(?i)owner", "severity": "High", "remediation": "Verify account owner.", "fix": "if account.owner != program_id { return Err(ProgramError::IncorrectProgramId.into()); }", "exploit": "Attacker passes a fake account owned by a different program to spoof data."},
+            {"title": "Unchecked Account", "pattern": r"UncheckedAccount", "severity": "Critical", "remediation": "Avoid UncheckedAccount; use specific Anchor types.", "fix": "Account<'info, TokenAccount>", "exploit": "An attacker can pass an account with arbitrary data that the program will process as valid input."},
+            {"title": "Precision Loss", "pattern": r"\/.*\*|\(.*\/.*\).*\* ", "severity": "Medium", "remediation": "Multiply before dividing.", "fix": "(amount * multiplier) / scale", "exploit": "Rounding errors during division can lead to incorrect calculation of rewards or balances."}
         ]
 
         found_types = set()
@@ -133,7 +137,7 @@ class AuditService:
         base_score = 100 - point_loss
         
         return AuditReport(
-            id=str(int(time.time())),
+            id=str(uuid.uuid4()),
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             contract_name=request.contract_name,
             overall_score=max(0, base_score),

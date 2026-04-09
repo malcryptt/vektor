@@ -137,6 +137,50 @@ pub mod betting_game {
         }
         Ok(())
     }
+}`,
+    reentrancy: `// Reentrancy / CPI Vulnerability
+use anchor_lang::prelude::*;
+
+#[program]
+pub mod reentrancy_risk {
+    use super::*;
+    pub fn withdraw_and_callback(ctx: Context<Withdraw>) -> Result<()> {
+        let amount = ctx.accounts.vault.amount;
+        
+        // CPI to external program BEFORE state update
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.user.to_account_info(),
+            authority: ctx.accounts.vault_authority.to_account_info(),
+        };
+        token::transfer(CpiContext::new(ctx.accounts.token_program.clone(), cpi_accounts), amount)?;
+        
+        // State update happens AFTER external call
+        ctx.accounts.vault.amount = 0;
+        Ok(())
+    }
+}
+`,
+    pda: `// Unchecked PDA Seeds
+use anchor_lang::prelude::*;
+
+#[program]
+pub mod pda_leak {
+    use super::*;
+    pub fn initialize_pool(ctx: Context<InitPool>, pool_id: u64) -> Result<()> {
+        // Pool address is passed by user but seeds aren't verified in code
+        let pool = &ctx.accounts.pool;
+        msg!("Pool initialized: {:?}", pool.key());
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct InitPool<'info> {
+    /// CHECK: Seeds not verified, attacker can pass arbitrary account
+    pub pool: UncheckedAccount<'info>,
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 `
 };
@@ -322,6 +366,8 @@ export default function AuditWorkspace() {
                             <button onClick={() => setCode(SAMPLES.vulnerable)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Vulnerable</button>
                             <button onClick={() => setCode(SAMPLES.clean)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Clean</button>
                             <button onClick={() => setCode(SAMPLES.cashio)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Cashio Exploit</button>
+                            <button onClick={() => setCode(SAMPLES.reentrancy)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">Reentrancy</button>
+                            <button onClick={() => setCode(SAMPLES.pda)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">PDA Leak</button>
                             <button onClick={() => setCode(SAMPLES.vrf)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-secondary text-secondary">VRF Secure</button>
                         </div>
                     </div>
