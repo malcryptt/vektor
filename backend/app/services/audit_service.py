@@ -26,7 +26,7 @@ class AuditService:
                 request, 
                 or_key, 
                 base_url="https://openrouter.ai/api/v1",
-                model="google/gemini-2.0-flash-lite-preview-02-05:free"
+                model="google/gemini-2.0-flash-exp:free"
             )
 
         oa_key = os.getenv("OPENAI_API_KEY")
