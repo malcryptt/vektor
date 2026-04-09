@@ -6,6 +6,7 @@ import uuid
 from typing import List, Optional
 from openai import AsyncOpenAI
 from ..models.models import AuditFinding, AuditReport, AuditRequest
+from .signatures import pre_scan
 import time
 
 class AuditService:
@@ -20,20 +21,38 @@ class AuditService:
     @staticmethod
     async def analyze_code(request: AuditRequest) -> AuditReport:
         framework = AuditService.detect_framework(request.code)
+        pre_findings = pre_scan(request.code)
+
         or_key = os.getenv("OPENROUTER_API_KEY")
+        report = None
         if or_key:
-            return await AuditService._analyze_with_ai(
+            report = await AuditService._analyze_with_ai(
                 request, 
                 or_key, 
                 base_url="https://openrouter.ai/api/v1",
                 model="google/gemini-2.0-flash-exp:free"
             )
 
-        oa_key = os.getenv("OPENAI_API_KEY")
-        if oa_key:
-            return await AuditService._analyze_with_ai(request, oa_key)
-            
-        return await AuditService._analyze_with_heuristic(request)
+        if not report:
+            oa_key = os.getenv("OPENAI_API_KEY")
+            if oa_key:
+                report = await AuditService._analyze_with_ai(request, oa_key)
+            else:
+                report = await AuditService._analyze_with_heuristic(request)
+
+        # Merge pre-scan hits
+        if pre_findings:
+            # Re-dedupe similar finds
+            ai_titles = [f.title for f in report.findings]
+            filtered_findings = [f for f in pre_findings if not any(t for t in ai_titles if t == f.title)]
+            report.findings = filtered_findings + report.findings
+
+        # Recalculate Score
+        score_map = {"Critical": 30, "High": 20, "Medium": 10, "Low": 5}
+        point_loss = sum(score_map.get(f.severity, 0) for f in report.findings)
+        report.overall_score = max(0, 100 - point_loss)
+
+        return report
 
     @staticmethod
     async def _analyze_with_ai(request: AuditRequest, api_key: str, base_url: Optional[str] = None, model: str = "gpt-4o-mini") -> AuditReport:
@@ -44,7 +63,7 @@ class AuditService:
         Your goal is to identify vulnerabilities in the provided Rust/Anchor code.
         Where relevant, reference historical Solana exploits (e.g., the Cashio infinite mint, the Wormhole bridge signature bypass) to explain the potential impact.
         
-        For EVERY finding, you MUST provide a 'suggested_fix_code' which is the corrected version of the code snippet.
+        For EVERY finding, you MUST provide a 'corrected_code' which is a short Rust code snippet showing the fix. The snippet should be minimal — only the fixed function or the fixed lines. If you cannot generate a specific fix, set corrected_code to null.
         
         ### EXAMPLE FINDING (JSON format):
         {
@@ -56,7 +75,7 @@ class AuditService:
             "line_start": 42,
             "line_end": 42,
             "code_snippet": "let vault_info = &ctx.accounts.vault;",
-            "suggested_fix_code": "let vault_info = &ctx.accounts.vault;\nif vault_info.owner != &crate::ID { return Err(ErrorCode::InvalidOwner.into()); }"
+            "corrected_code": "let vault_info = &ctx.accounts.vault;\nif vault_info.owner != &crate::ID { return Err(ErrorCode::InvalidOwner.into()); }"
         }
 
         Return ONLY a JSON object:
@@ -128,7 +147,7 @@ class AuditService:
                         line_start=i + 1,
                         line_end=i + 1,
                         code_snippet=line.strip(),
-                        suggested_fix_code=v["fix"]
+                        corrected_code=v["fix"]
                     ))
                     found_types.add(v["title"])
 

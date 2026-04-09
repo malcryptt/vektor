@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import SeverityBadge from '@/components/SeverityBadge';
 import RiskBanner from '@/components/RiskBanner';
+import SecurityScore from '@/components/SecurityScore';
 import ReportCard from '@/components/ReportCard';
 import AuditHistory from '@/components/AuditHistory';
 import MobileNav from '@/components/MobileNav';
@@ -34,8 +35,9 @@ interface Finding {
     line_start: number;
     line_end: number;
     code_snippet?: string;
-    suggested_fix_code?: string;
+    corrected_code?: string | null;
     exploit_scenario?: string;
+    source?: string;
 }
 
 interface AuditReport {
@@ -341,7 +343,7 @@ export default function AuditWorkspace() {
             <Navbar />
 
             <div className="pt-16 flex-1 flex flex-col overflow-hidden">
-                <RiskBanner criticalCount={criticalCount} highCount={highCount} />
+
 
                 {/* Toolbar */}
                 <div className="md:h-14 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 md:px-6 py-3 md:py-0 gap-4">
@@ -418,9 +420,14 @@ export default function AuditWorkspace() {
                             )}
 
                             {report && (
-                                <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0">
-                                    <Download className="w-4 h-4" />
-                                </button>
+                                <>
+                                    <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0">
+                                        <Download className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={handleShare} className="p-2 rounded-lg bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 border border-[#1DA1F2]/20 text-[#1DA1F2] transition-colors shrink-0">
+                                        <Twitter className="w-4 h-4" />
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
@@ -472,52 +479,10 @@ export default function AuditWorkspace() {
                                     <span className="text-[10px] text-muted font-mono">{report.id}</span>
                                 </div>
 
-                                {/* Score Indicator */}
-                                <div className="p-4 md:p-6 border-b border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-0">
-                                    <div className="flex items-center gap-6">
-                                        <div className="relative w-12 h-12 md:w-16 md:h-16">
-                                            <svg className="w-full h-full -rotate-90">
-                                                <circle cx="24" cy="24" r="20" className="md:hidden stroke-white/5 fill-none" strokeWidth="4" />
-                                                <circle cx="32" cy="32" r="28" className="hidden md:block stroke-white/5 fill-none" strokeWidth="4" />
-                                                <circle
-                                                    cx="24" cy="24" r="20"
-                                                    className={`md:hidden fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
-                                                    strokeWidth="4"
-                                                    strokeDasharray={126}
-                                                    strokeDashoffset={126 - (126 * report.overall_score) / 100}
-                                                />
-                                                <circle
-                                                    cx="32" cy="32" r="28"
-                                                    className={`hidden md:block fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
-                                                    strokeWidth="4"
-                                                    strokeDasharray={176}
-                                                    strokeDashoffset={176 - (176 * report.overall_score) / 100}
-                                                />
-                                            </svg>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                {report.overall_score > 80 ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-secondary" /> : <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-primary" />}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-[10px] md:text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
-                                            <div className="text-2xl md:text-3xl font-black">{report.overall_score}<span className="text-[10px] md:text-xs text-muted font-normal ml-1">/100</span></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center sm:items-end sm:flex-col gap-3 sm:gap-2 w-full sm:w-auto">
-                                        <img
-                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/audit/${report.id}/badge`}
-                                            alt="Vektor Badge"
-                                            className="h-6 md:h-8 shadow-lg"
-                                        />
-                                        <button
-                                            onClick={handleShare}
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-[9px] md:text-[10px] font-bold transition-all whitespace-nowrap"
-                                        >
-                                            <Twitter className="w-3 h-3" />
-                                            Share Result
-                                        </button>
-                                    </div>
-                                </div>
+                                {/* Security Score & Risk Banner */}
+                                <SecurityScore score={report.overall_score} />
+                                <RiskBanner criticalCount={criticalCount} highCount={highCount} />
+
 
                                 {/* Findings Scroll Area */}
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -572,6 +537,25 @@ export default function AuditWorkspace() {
                                                 });
                                         }}
                                     />
+
+                                    {/* Embed Badge Section */}
+                                    <div className="mt-8 pt-6 border-t border-white/5 px-2">
+                                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted mb-4">Embed this badge in your README</h3>
+                                        <div className="flex flex-col gap-4">
+                                            <img
+                                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/badge/${report.overall_score}`}
+                                                alt="Vektor Score Badge"
+                                                className="h-6 w-auto object-contain self-start"
+                                            />
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                                value={`[![Vektor Score](${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/badge/${report.overall_score})](https://vektor.security)`}
+                                                className="w-full bg-black/40 border border-white/10 rounded-md p-3 text-[10px] sm:text-xs font-mono text-muted focus:outline-none focus:border-primary/50"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}

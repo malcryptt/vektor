@@ -65,6 +65,11 @@ async def get_audit_badge(audit_id: str):
         return Response(content=svg, media_type="image/svg+xml")
     return Response(content=BadgeService.generate_badge_svg(0), media_type="image/svg+xml")
 
+@app.get("/badge/{score}")
+async def get_score_badge(score: int):
+    svg = BadgeService.generate_badge_svg(max(0, min(100, score)))
+    return Response(content=svg, media_type="image/svg+xml", headers={"Cache-Control": "no-cache"})
+
 @app.get("/on-chain/{program_id}")
 async def simulate_on_chain_fetch(program_id: str):
     # This is a simulation for hackathon purposes
