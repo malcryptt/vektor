@@ -14,7 +14,8 @@ import {
   Cpu,
   Zap,
   ArrowRight,
-  Search
+  Search,
+  CheckCircle2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
