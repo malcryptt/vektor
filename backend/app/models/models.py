@@ -1,7 +1,6 @@
-from pydantic import BaseModel
-from typing import List, Optional
 from datetime import datetime
 import uuid
+from pydantic import BaseModel, Field
 
 class AuditFinding(BaseModel):
     title: str
@@ -13,8 +12,8 @@ class AuditFinding(BaseModel):
     code_snippet: Optional[str] = None
 
 class AuditReport(BaseModel):
-    id: str = str(uuid.uuid4())
-    timestamp: datetime = datetime.now()
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: datetime = Field(default_factory=datetime.now)
     contract_name: str
     overall_score: int  # 0-100
     summary: str

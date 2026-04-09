@@ -3,12 +3,12 @@
 Vektor is an AI-powered security auditor specifically designed for Solana smart contracts. It thinks like an attacker to identify vulnerabilities before they can be exploited.
 
 ## Features
-- **AI-Powered Audits**: Advanced AI model trained on Solana security patterns.
-- **Vulnerability Detection**: Detects all major Solana-specific vulnerability classes.
-- **Audit History**: Keep track of your past audits.
-- **PDF Export**: Generate detailed PDF reports for your projects.
-- **Line References**: Pinpoint exactly where the issues are in your code.
-- **Mobile Responsive**: Audit on the go.
+- **Attacker-Mindset UI**: High-intensity Red (#ff4444) theme designed to pinpoint vulnerabilities.
+- **Integrated Audit Workspace**: A unified `/audit` route for code editing and real-time reporting.
+- **Monaco Editor**: Professional grade code editor with Solana syntax highlighting.
+- **Audit History**: Persistent session-based history tracking.
+- **PDF Export**: Generate professional security audit reports.
+- **Mobile Optimized**: Tab-based navigation for auditing from any device.
 
 ## Vulnerability Classes Detected
 1. **Missing Ownership Checks**
