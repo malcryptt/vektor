@@ -260,10 +260,12 @@ export default function AuditWorkspace() {
                                     <div className="relative w-16 h-16">
                                         <svg className="w-full h-full -rotate-90">
                                             <circle cx="32" cy="32" r="28" className="stroke-white/5 fill-none" strokeWidth="4" />
-                                            className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
-                                            strokeWidth="4"
-                                            strokeDasharray={176}
-                                            strokeDashoffset={176 - (176 * report.overall_score) / 100}
+                                            <circle
+                                                cx="32" cy="32" r="28"
+                                                className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
+                                                strokeWidth="4"
+                                                strokeDasharray={176}
+                                                strokeDashoffset={176 - (176 * report.overall_score) / 100}
                                             />
                                         </svg>
                                         <div className="absolute inset-0 flex items-center justify-center">
