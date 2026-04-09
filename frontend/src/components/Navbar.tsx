@@ -1,17 +1,15 @@
 "use client";
 
 import Link from 'next/link';
-import { Shield, Github, Twitter } from 'lucide-react';
+import Logo from './Logo';
+import { Github } from 'lucide-react';
 
 export default function Navbar() {
     return (
         <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 group">
-                    <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                        <Shield className="w-6 h-6 text-primary" />
-                    </div>
-                    <span className="font-bold text-xl tracking-tight">VEKTOR</span>
+                <Link href="/">
+                    <Logo className="w-8 h-8" />
                 </Link>
 
                 <div className="flex items-center gap-6">
