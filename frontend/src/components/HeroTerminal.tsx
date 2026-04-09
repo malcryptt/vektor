@@ -21,7 +21,7 @@ export default function HeroTerminal() {
     useEffect(() => {
         const timer = setInterval(() => {
             setVisibleLines(prev => (prev < AUDIT_LINES.length - 1 ? prev + 1 : 0));
-        }, 15);
+        }, 800);
         return () => clearInterval(timer);
     }, []);
 

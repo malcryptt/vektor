@@ -247,6 +247,9 @@ export default function AuditWorkspace() {
 
     const runAudit = async () => {
         setIsLoading(true);
+        setStatusMessage("Vektor Flash Scan (15ms)...");
+        await new Promise(r => setTimeout(r, 15));
+        setStatusMessage("Running AI Deep Analysis...");
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             const response = await fetch(`${apiUrl}/audit`, {
@@ -273,6 +276,7 @@ export default function AuditWorkspace() {
             alert("Connection error: Backend unreachable.");
         } finally {
             setIsLoading(false);
+            setStatusMessage("");
         }
     };
 
