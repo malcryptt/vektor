@@ -20,7 +20,8 @@ export default function CodeSubmission() {
         if (!code) return;
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/audit', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/audit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, contract_name: contractName || "SolanaProgram" }),

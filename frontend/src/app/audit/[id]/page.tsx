@@ -19,8 +19,8 @@ interface Finding {
     description: string;
     severity: string;
     remediation: string;
-    line_start: int;
-    line_end: int;
+    line_start: number;
+    line_end: number;
     code_snippet?: string;
 }
 
@@ -43,7 +43,8 @@ export default function AuditResultPage() {
     useEffect(() => {
         const fetchReport = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/audit/${id}`);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await fetch(`${apiUrl}/audit/${id}`);
                 if (!response.ok) throw new Error("Report not found");
                 const data = await response.json();
                 setReport(data);
@@ -58,7 +59,8 @@ export default function AuditResultPage() {
     }, [id, router]);
 
     const handleDownloadPDF = () => {
-        window.open(`http://localhost:8000/audit/${id}/pdf`, '_blank');
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        window.open(`${apiUrl}/audit/${id}/pdf`, '_blank');
     };
 
     if (isLoading) {
