@@ -20,6 +20,9 @@ import {
 import SeverityBadge from '@/components/SeverityBadge';
 import RiskBanner from '@/components/RiskBanner';
 import ReportCard from '@/components/ReportCard';
+import AuditHistory from '@/components/AuditHistory';
+import MobileNav from '@/components/MobileNav';
+import { useEffect } from 'react';
 
 interface Finding {
     title: string;
@@ -39,6 +42,13 @@ interface AuditReport {
     summary: string;
     findings: Finding[];
     raw_code: string;
+}
+
+interface AuditSummary {
+    id: string;
+    contract_name: string;
+    score: number;
+    timestamp: string;
 }
 
 const SAMPLES = {
@@ -103,7 +113,20 @@ export default function AuditWorkspace() {
     const [report, setReport] = useState<AuditReport | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'editor' | 'report'>('editor');
+    const [auditHistory, setAuditHistory] = useState<AuditSummary[]>([]);
     const editorRef = useRef<any>(null);
+
+    // Persist history to localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('vektor_history');
+        if (saved) setAuditHistory(JSON.parse(saved));
+    }, []);
+
+    useEffect(() => {
+        if (auditHistory.length > 0) {
+            localStorage.setItem('vektor_history', JSON.stringify(auditHistory));
+        }
+    }, [auditHistory]);
 
     const handleEditorDidMount = (editor: any) => {
         editorRef.current = editor;
@@ -128,6 +151,15 @@ export default function AuditWorkspace() {
             const data = await response.json();
             setReport(data);
             setActiveTab('report');
+
+            // Add to history
+            const newAudit: AuditSummary = {
+                id: data.id,
+                contract_name: "Session Audit",
+                score: data.overall_score,
+                timestamp: new Date().toISOString()
+            };
+            setAuditHistory(prev => [newAudit, ...prev.slice(0, 9)]);
         } catch (error) {
             console.error("Audit failed", error);
             alert("Connection error: Backend unreachable.");
