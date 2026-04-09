@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+venv/
+.env
+__pycache__/
+*.pyc
+
+# IDE files
+.vscode/
+.idea/
+
+# Next.js build
+.next/
+out/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vektor specific exclusions
+*.md
+!README.md
+!samples/*.rs
