@@ -22,7 +22,7 @@ Vektor is an AI-powered security auditor specifically designed for Solana smart 
 
 ## Tech Stack
 - **Frontend**: Next.js, Tailwind CSS, Lucide React
-- **Backend**: Python FastAPI, OpenAI API (or compatible model)
+- **Backend**: Python FastAPI, OpenAI or OpenRouter (Free AI)
 - **Monorepo**: Single repository architecture
 
 ## Local Setup
@@ -48,5 +48,9 @@ Vektor is an AI-powered security auditor specifically designed for Solana smart 
 ## Hackathon Submission — Solana Frontier 2026
 Vektor is built with the goal of making Solana the most secure ecosystem in crypto. By leveraging AI to automate the heavy lifting of security audits, we empower developers to build with confidence.
 
----
+## Training Vektor (Free AI)
+To use Vektor with a completely free AI model:
+1. Get a free API key from [OpenRouter.ai](https://openrouter.ai).
+2. Add `OPENROUTER_API_KEY` to your Render environment variables.
+3. Vektor will automatically use `Gemini 2.0 Flash Lite` for zero-cost audits.
 *Developed by mal4crypt*
