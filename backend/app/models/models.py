@@ -22,6 +22,12 @@ class AuditReport(BaseModel):
     summary: str
     findings: List[AuditFinding]
     raw_code: str
+    framework: Optional[str] = "Native Solana"
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 class AuditRequest(BaseModel):
     code: str

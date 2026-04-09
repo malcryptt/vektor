@@ -9,7 +9,16 @@ import time
 
 class AuditService:
     @staticmethod
+    def detect_framework(code: str) -> str:
+        if "anchor_lang" in code or "#[program]" in code:
+            return "Anchor Framework"
+        if "solana_program" in code:
+            return "Native Solana"
+        return "Unknown"
+
+    @staticmethod
     async def analyze_code(request: AuditRequest) -> AuditReport:
+        framework = AuditService.detect_framework(request.code)
         or_key = os.getenv("OPENROUTER_API_KEY")
         if or_key:
             return await AuditService._analyze_with_ai(
@@ -32,6 +41,7 @@ class AuditService:
         system_prompt = """
         You are Vektor, a world-class Solana smart contract security auditor. 
         Your goal is to identify vulnerabilities in the provided Rust/Anchor code.
+        Where relevant, reference historical Solana exploits (e.g., the Cashio infinite mint, the Wormhole bridge signature bypass) to explain the potential impact.
         
         For EVERY finding, you MUST provide a 'suggested_fix_code' which is the corrected version of the code snippet.
         
@@ -53,6 +63,10 @@ class AuditService:
                 }
             ]
         }
+        
+        Note: When calculating overall_score, use this weight: 
+        Critical: -30, High: -20, Medium: -10, Low: -5.
+        Start at 100 and do not go below 0.
         """
 
         extra_headers = {}
@@ -80,7 +94,8 @@ class AuditService:
                 overall_score=data["overall_score"],
                 summary=data["summary"],
                 findings=findings,
-                raw_code=request.code
+                raw_code=request.code,
+                framework=framework
             )
         except Exception:
             return await AuditService._analyze_with_heuristic(request)
@@ -113,7 +128,10 @@ class AuditService:
                     ))
                     found_types.add(v["title"])
 
-        base_score = 100 - (len(findings) * 15)
+        score_map = {"Critical": 30, "High": 20, "Medium": 10, "Low": 5}
+        point_loss = sum(score_map.get(f.severity, 0) for f in findings)
+        base_score = 100 - point_loss
+        
         return AuditReport(
             id=str(int(time.time())),
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -121,5 +139,6 @@ class AuditService:
             overall_score=max(0, base_score),
             summary=f"Audit complete. {len(findings)} issues found.",
             findings=findings,
-            raw_code=request.code
+            raw_code=request.code,
+            framework=framework
         )

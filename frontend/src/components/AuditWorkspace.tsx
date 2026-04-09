@@ -1,6 +1,6 @@
 "use client";
 
-// Vektor Audit Workspace - Premium V3 (Vercel Sync Fix)
+
 
 import { useState, useRef, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
@@ -46,6 +46,7 @@ interface AuditReport {
     summary: string;
     findings: Finding[];
     raw_code: string;
+    framework?: string;
 }
 
 interface AuditSummary {
@@ -148,7 +149,9 @@ export default function AuditWorkspace() {
     const [auditHistory, setAuditHistory] = useState<AuditSummary[]>([]);
     const [programId, setProgramId] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
+    const [decorations, setDecorations] = useState<any[]>([]);
     const editorRef = useRef<any>(null);
+    const monacoRef = useRef<any>(null);
 
     // Persist history to localStorage
     useEffect(() => {
@@ -162,9 +165,27 @@ export default function AuditWorkspace() {
         }
     }, [auditHistory]);
 
-    const handleEditorDidMount = (editor: any) => {
+    const handleEditorDidMount = (editor: any, monaco: any) => {
         editorRef.current = editor;
+        monacoRef.current = monaco;
     };
+
+    // Apply decorations (heatmap)
+    useEffect(() => {
+        if (!editorRef.current || !report) return;
+
+        const newDecorations = report.findings.map(f => ({
+            range: new monacoRef.current.Range(f.line_start, 1, f.line_end, 1),
+            options: {
+                isWholeLine: true,
+                className: f.severity === 'Critical' || f.severity === 'High' ? 'bg-primary/20' : 'bg-yellow-500/10',
+                glyphMarginClassName: f.severity === 'Critical' || f.severity === 'High' ? 'bg-primary' : 'bg-yellow-500',
+            }
+        }));
+
+        const decorationIds = editorRef.current.deltaDecorations(decorations, newDecorations);
+        setDecorations(decorationIds);
+    }, [report, code]);
 
     const handleJumpToLine = (line: number) => {
         setActiveTab('editor');
@@ -387,6 +408,17 @@ export default function AuditWorkspace() {
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col overflow-hidden">
+                                {/* Framework & Info Bar */}
+                                <div className="px-6 py-3 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">
+                                            {report.framework || "Native Solana"} Detected
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-muted font-mono">{report.id}</span>
+                                </div>
+
                                 {/* Score Indicator */}
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-6">
@@ -434,6 +466,13 @@ export default function AuditWorkspace() {
                                             Detected Vulnerabilities ({report.findings.length})
                                         </h3>
                                         <div className="space-y-4">
+                                            <button
+                                                onClick={() => { setActiveTab('editor'); runAudit(); }}
+                                                className="w-full py-3 mb-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-widest transition-all"
+                                            >
+                                                Re-audit Workspace
+                                            </button>
+
                                             {report.findings.map((finding, idx) => (
                                                 <ReportCard
                                                     key={idx}

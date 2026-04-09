@@ -5,7 +5,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Vektor API")
+app = FastAPI(title="Vektor Security API")
+reports_db = {} # In-memory storage for demo
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -35,13 +36,13 @@ async def root():
 @limiter.limit("5/minute")
 async def create_audit(request: Request, audit_req: AuditRequest):
     report = await AuditService.analyze_code(audit_req)
-    audit_history[report.id] = report
+    reports_db[report.id] = report
     return report
 
-@app.get("/audit/{audit_id}", response_model=AuditReport)
+@app.get("/audit/{audit_id}")
 async def get_audit(audit_id: str):
-    if audit_id in audit_history:
-        return audit_history[audit_id]
+    if audit_id in reports_db:
+        return reports_db[audit_id]
     return Response(content="Audit not found", status_code=404)
 
 @app.get("/audit/{audit_id}/pdf")
