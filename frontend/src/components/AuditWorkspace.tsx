@@ -1,0 +1,308 @@
+"use client";
+
+import { useState, useRef } from 'react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import Editor from '@monaco-editor/react';
+import {
+    Play,
+    Download,
+    FileUp,
+    History,
+    Shield,
+    Target,
+    Search,
+    Loader2,
+    Code2,
+    CheckCircle2,
+    AlertCircle
+} from 'lucide-react';
+import SeverityBadge from '@/components/SeverityBadge';
+import RiskBanner from '@/components/RiskBanner';
+import ReportCard from '@/components/ReportCard';
+
+interface Finding {
+    title: string;
+    description: string;
+    severity: string;
+    remediation: string;
+    line_start: number;
+    line_end: number;
+    code_snippet?: string;
+}
+
+interface AuditReport {
+    id: string;
+    timestamp: string;
+    contract_name: string;
+    overall_score: number;
+    summary: string;
+    findings: Finding[];
+    raw_code: string;
+}
+
+const SAMPLES = {
+    vulnerable: `// Vulnerable Solana Vault
+use anchor_lang::prelude::*;
+
+declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+
+#[program]
+pub module simple_vault {
+    use super::*;
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        let user = &ctx.accounts.user;
+        let vault = &mut ctx.accounts.vault;
+        
+        // VULNERABILITY: Missing owner check or signer check in some cases
+        // VULNERABILITY: Integer overflow if not using checked math
+        vault.balance -= amount;
+        **user.lamports.borrow_mut() += amount;
+        
+        Ok(())
+    }
+}`,
+    clean: `// Secure Solana Staking
+use anchor_lang::prelude::*;
+
+declare_id!("6789PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+
+#[program]
+pub module secure_staking {
+    use super::*;
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        let staker = &ctx.accounts.staker;
+        let stake_account = &mut ctx.accounts.stake_account;
+        
+        // SECURE: Checked arithmetic
+        stake_account.amount = stake_account.amount.checked_add(amount).ok_or(error!(ErrorCode::Overflow))?;
+        
+        Ok(())
+    }
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Arithmetic overflow")]
+    Overflow,
+}`,
+    cashio: `// Cashio Infinite Mint Exploit Simulation (Simplified)
+pub fn mint_cash(ctx: Context<MintCash>, amount: u64) -> Result<()> {
+    // VULNERABILITY: Insufficient validation of the bank account
+    // Attackers could pass a fake bank account to bypass collateral checks
+    let bank = &ctx.accounts.bank;
+    let crate_info = &ctx.accounts.crate_info;
+    
+    token::mint_to(ctx.accounts.into_mint_to_context(), amount)?;
+    Ok(())
+}`
+};
+
+export default function AuditWorkspace() {
+    const [code, setCode] = useState(SAMPLES.vulnerable);
+    const [report, setReport] = useState<AuditReport | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'editor' | 'report'>('editor');
+    const editorRef = useRef<any>(null);
+
+    const handleEditorDidMount = (editor: any) => {
+        editorRef.current = editor;
+    };
+
+    const handleJumpToLine = (line: number) => {
+        setActiveTab('editor');
+        editorRef.current?.revealLineInCenter(line);
+        editorRef.current?.setPosition({ lineNumber: line, column: 1 });
+        editorRef.current?.focus();
+    };
+
+    const runAudit = async () => {
+        setIsLoading(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/audit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, contract_name: "AuditWorkspace" }),
+            });
+            const data = await response.json();
+            setReport(data);
+            setActiveTab('report');
+        } catch (error) {
+            console.error("Audit failed", error);
+            alert("Connection error: Backend unreachable.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => setCode(e.target?.result as string);
+            reader.readAsText(file);
+        }
+    };
+
+    const handleDownloadPDF = () => {
+        if (!report) return;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        window.open(`${apiUrl}/audit/${report.id}/pdf`, '_blank');
+    };
+
+    const criticalCount = report?.findings.filter(f => f.severity === 'Critical').length || 0;
+    const highCount = report?.findings.filter(f => f.severity === 'High').length || 0;
+
+    return (
+        <main className="min-h-screen bg-[#050505] flex flex-col">
+            <Navbar />
+
+            <div className="pt-16 flex-1 flex flex-col overflow-hidden">
+                <RiskBanner criticalCount={criticalCount} highCount={highCount} />
+
+                {/* Toolbar */}
+                <div className="h-14 border-b border-white/5 bg-white/[0.02] flex items-center justify-between px-6">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
+                            <button
+                                onClick={() => setActiveTab('editor')}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'editor' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white'}`}
+                            >
+                                <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
+                                Editor
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('report')}
+                                disabled={!report}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'report' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white disabled:opacity-20'}`}
+                            >
+                                <Search className="w-3.5 h-3.5 inline mr-1.5" />
+                                Report
+                            </button>
+                        </div>
+
+                        <div className="h-6 w-[1px] bg-white/10 mx-2" />
+
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setCode(SAMPLES.vulnerable)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Vulnerable</button>
+                            <button onClick={() => setCode(SAMPLES.clean)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Clean</button>
+                            <button onClick={() => setCode(SAMPLES.cashio)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Cashio Exploit</button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <label className="cursor-pointer flex items-center gap-2 text-xs text-muted hover:text-white transition-colors">
+                            <FileUp className="w-4 h-4" />
+                            <span>Upload</span>
+                            <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
+                        </label>
+
+                        <button
+                            onClick={runAudit}
+                            disabled={isLoading}
+                            className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,68,68,0.3)]"
+                        >
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+                            Run Audit
+                        </button>
+
+                        {report && (
+                            <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+                                <Download className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Workspace */}
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Left: Editor */}
+                    <div className={`flex-1 flex flex-col ${activeTab === 'report' ? 'hidden lg:flex' : 'flex'}`}>
+                        <Editor
+                            height="100%"
+                            defaultLanguage="rust"
+                            theme="vs-dark"
+                            value={code}
+                            onChange={(val) => setCode(val || "")}
+                            onMount={handleEditorDidMount}
+                            options={{
+                                minimap: { enabled: false },
+                                fontSize: 13,
+                                lineNumbers: 'on',
+                                roundedSelection: false,
+                                scrollBeyondLastLine: false,
+                                readOnly: false,
+                                padding: { top: 20 },
+                                backgroundColor: '#050505',
+                            }}
+                        />
+                    </div>
+
+                    {/* Right: Results Panel */}
+                    <div className={`w-full lg:w-[450px] border-l border-white/5 bg-white/[0.01] flex flex-col ${activeTab === 'editor' ? 'hidden lg:flex' : 'flex'}`}>
+                        {!report ? (
+                            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
+                                    <Shield className="w-8 h-8 text-muted" />
+                                </div>
+                                <h3 className="text-lg font-bold mb-2">No active analysis</h3>
+                                <p className="text-sm text-muted">Upload your Solana smart contract or select a sample to begin the AI security audit.</p>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col overflow-hidden">
+                                {/* Score Indicator */}
+                                <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
+                                        <div className="text-3xl font-black">{report.overall_score}<span className="text-xs text-muted font-normal ml-1">/100</span></div>
+                                    </div>
+                                    <div className="relative w-16 h-16">
+                                        <svg className="w-full h-full -rotate-90">
+                                            <circle cx="32" cy="32" r="28" className="stroke-white/5 fill-none" strokeWidth="4" />
+                                            className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
+                                            strokeWidth="4"
+                                            strokeDasharray={176}
+                                            strokeDashoffset={176 - (176 * report.overall_score) / 100}
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            {report.overall_score > 80 ? <CheckCircle2 className="w-6 h-6 text-secondary" /> : <AlertCircle className="w-6 h-6 text-primary" />}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Findings Scroll Area */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    <div className="px-2 py-4">
+                                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted mb-4 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                            Detected Vulnerabilities ({report.findings.length})
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {report.findings.map((finding, idx) => (
+                                                <ReportCard
+                                                    key={idx}
+                                                    finding={finding}
+                                                    onJumpToLine={handleJumpToLine}
+                                                />
+                                            ))}
+                                            {report.findings.length === 0 && (
+                                                <div className="p-12 text-center">
+                                                    <CheckCircle2 className="w-12 h-12 text-secondary mx-auto mb-4 opacity-50" />
+                                                    <p className="text-sm text-muted">Zero vulnerabilities found. This contract follow best practices.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <Footer />
+        </main>
+    );
+}

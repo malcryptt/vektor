@@ -1,6 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import CodeSubmission from '@/components/CodeSubmission';
+import Link from 'next/link';
 import { Shield, Target, History, FileText, Smartphone, Code2 } from 'lucide-react';
 
 export default function Home() {
@@ -30,17 +30,15 @@ export default function Home() {
           </p>
 
           <div className="flex items-center justify-center gap-4 animate-slide-up delay-200">
-            <a href="#audit-tool" className="bg-white text-black hover:bg-white/90 px-8 py-3 rounded-full font-semibold transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-              Get Started
-            </a>
-            <a href="https://github.com" className="bg-white/5 hover:bg-white/10 px-8 py-3 rounded-full font-semibold border border-white/10 transition-all">
+            <Link href="/audit" className="bg-white text-black hover:bg-white/90 px-8 py-3 rounded-full font-semibold transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+              Launch Vektor
+            </Link>
+            <a href="https://github.com/malcryptt/vektor" target="_blank" rel="noreferrer" className="bg-white/5 hover:bg-white/10 px-8 py-3 rounded-full font-semibold border border-white/10 transition-all">
               View Source
             </a>
           </div>
         </div>
       </section>
-
-      <CodeSubmission />
 
       {/* Features Grid */}
       <section id="features" className="py-24 px-4 bg-white/[0.01]">

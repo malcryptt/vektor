@@ -3,9 +3,9 @@
 @theme {
   --color-background: #050505;
   --color-foreground: #ffffff;
-  --color-primary: #9945FF;
-  --color-secondary: #14F195;
-  --color-accent: #f0f0f0;
+  --color-primary: #ff4444;
+  --color-secondary: #22c55e;
+  --color-accent: #555555;
   --color-muted: #666666;
   --color-border: #262626;
 }
@@ -13,8 +13,8 @@
 :root {
   --background: #050505;
   --foreground: #ffffff;
-  --primary: #9945FF;
-  --secondary: #14F195;
+  --primary: #ff4444;
+  --secondary: #22c55e;
 }
 
 body {
@@ -30,11 +30,11 @@ body {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+  background: linear-gradient(135deg, #ff4444 0%, #ff8888 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .glow {
-  box-shadow: 0 0 20px rgba(153, 69, 255, 0.2);
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.2);
 }
