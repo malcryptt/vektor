@@ -1,7 +1,7 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CodeSubmission from '@/components/CodeSubmission';
-import { Shield, Target, History, FileText, Smartphone } from 'lucide-react';
+import { Shield, Target, History, FileText, Smartphone, Code2 } from 'lucide-react';
 
 export default function Home() {
   return (
