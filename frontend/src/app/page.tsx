@@ -29,11 +29,11 @@ export default function Home() {
             The most advanced security partner for Solana developers.
           </p>
 
-          <div className="flex items-center justify-center gap-4 animate-slide-up delay-200">
-            <Link href="/audit" className="bg-white text-black hover:bg-white/90 px-8 py-3 rounded-full font-semibold transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-              Launch Vektor
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up delay-200">
+            <Link href="/audit" className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest transition-all shadow-[0_0_25px_rgba(255,68,68,0.4)] hover:scale-105 active:scale-95">
+              Launch App
             </Link>
-            <a href="https://github.com/malcryptt/vektor" target="_blank" rel="noreferrer" className="bg-white/5 hover:bg-white/10 px-8 py-3 rounded-full font-semibold border border-white/10 transition-all">
+            <a href="https://github.com/malcryptt/vektor" target="_blank" rel="noreferrer" className="w-full sm:w-auto bg-white/5 hover:bg-white/10 px-10 py-4 rounded-full font-bold text-sm border border-white/10 transition-all">
               View Source
             </a>
           </div>
