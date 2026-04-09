@@ -8,6 +8,7 @@ class AuditFinding(BaseModel):
     description: str
     severity: str  # Critical, High, Medium, Low
     remediation: str
+    exploit_scenario: Optional[str] = None
     line_start: int
     line_end: int
     code_snippet: Optional[str] = None

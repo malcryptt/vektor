@@ -8,11 +8,13 @@ interface AuditSummary {
     contract_name: string;
     score: number;
     timestamp: string;
+    report?: any;
+    code?: string;
 }
 
 interface AuditHistoryProps {
     history: AuditSummary[];
-    onSelectAudit: (id: string) => void;
+    onSelectAudit: (id: string, report?: any, code?: string) => void;
 }
 
 export default function AuditHistory({ history, onSelectAudit }: AuditHistoryProps) {
@@ -28,7 +30,7 @@ export default function AuditHistory({ history, onSelectAudit }: AuditHistoryPro
                 {history.map((audit) => (
                     <button
                         key={audit.id}
-                        onClick={() => onSelectAudit(audit.id)}
+                        onClick={() => onSelectAudit(audit.id, audit.report, audit.code)}
                         className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all text-left group"
                     >
                         <div className="flex items-center justify-between mb-1">

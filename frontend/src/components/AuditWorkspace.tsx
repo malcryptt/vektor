@@ -144,6 +144,7 @@ export default function AuditWorkspace() {
     const [activeTab, setActiveTab] = useState<'editor' | 'report'>('editor');
     const [auditHistory, setAuditHistory] = useState<AuditSummary[]>([]);
     const [programId, setProgramId] = useState("");
+    const [statusMessage, setStatusMessage] = useState("");
     const editorRef = useRef<any>(null);
 
     // Persist history to localStorage
@@ -194,7 +195,9 @@ export default function AuditWorkspace() {
                 id: data.id,
                 contract_name: "Session Audit",
                 score: data.overall_score,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                report: data,
+                code: code
             };
             setAuditHistory(prev => [newAudit, ...prev.slice(0, 9)]);
         } catch (error) {
@@ -208,16 +211,32 @@ export default function AuditWorkspace() {
     const fetchOnChain = async () => {
         if (!programId) return;
         setIsLoading(true);
+        setStatusMessage("Connecting to Solana Mainnet RPC...");
+
         try {
+            await new Promise(r => setTimeout(r, 600));
+            setStatusMessage("Verifying Program ID on-chain...");
+            await new Promise(r => setTimeout(r, 800));
+            setStatusMessage("Downloading verified source code...");
+
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             const res = await fetch(`${apiUrl}/on-chain/${programId}`);
+
+            if (!res.ok) throw new Error("Program not found or unverified.");
+
             const data = await res.json();
+
+            await new Promise(r => setTimeout(r, 500));
+            setStatusMessage("Compiling local workspace...");
+
             setCode(data.code);
             setActiveTab('editor');
         } catch (error) {
             console.error("Fetch failed", error);
+            alert("Failed to fetch on-chain code. Ensure the Program ID is verified on Explorer.");
         } finally {
             setIsLoading(false);
+            setStatusMessage("");
         }
     };
 
@@ -306,14 +325,21 @@ export default function AuditWorkspace() {
                             <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
                         </label>
 
-                        <button
-                            onClick={runAudit}
-                            disabled={isLoading}
-                            className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,68,68,0.3)]"
-                        >
-                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
-                            Run Audit
-                        </button>
+                        {isLoading && statusMessage ? (
+                            <div className="flex items-center gap-2 px-4">
+                                <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                                <span className="text-[10px] text-muted animate-pulse">{statusMessage}</span>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={runAudit}
+                                disabled={isLoading}
+                                className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,68,68,0.3)]"
+                            >
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+                                Run Audit
+                            </button>
+                        )}
 
                         {report && (
                             <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
@@ -425,7 +451,15 @@ export default function AuditWorkspace() {
                                     {/* Audit History integrated in panel */}
                                     <AuditHistory
                                         history={auditHistory}
-                                        onSelectAudit={(id) => {
+                                        onSelectAudit={(id, historyReport, historyCode) => {
+                                            if (historyReport) {
+                                                setReport(historyReport);
+                                                if (historyCode) setCode(historyCode);
+                                                setActiveTab('report');
+                                                return;
+                                            }
+
+                                            // Fallback to fetch if not cached (legacy)
                                             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                                             fetch(`${apiUrl}/audit/${id}`)
                                                 .then(res => res.json())

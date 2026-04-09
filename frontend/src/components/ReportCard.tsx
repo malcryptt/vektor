@@ -7,6 +7,7 @@ interface Finding {
     description: string;
     severity: string;
     remediation: string;
+    exploit_scenario?: string;
     line_start: number;
     line_end: number;
     code_snippet?: string;
@@ -40,6 +41,13 @@ export default function ReportCard({ finding, onJumpToLine, onApplyFix }: Report
                     <div className="p-3 rounded-lg bg-black/40 border border-white/5 font-mono text-[10px] text-gray-400 overflow-x-auto">
                         <span className="text-primary/50 mr-2">{finding.line_start}|</span>
                         {finding.code_snippet}
+                    </div>
+                )}
+
+                {finding.exploit_scenario && (
+                    <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+                        <p className="text-[9px] text-primary uppercase font-bold mb-1">Attacker Logic (Simulation)</p>
+                        <p className="text-[11px] text-gray-400 italic leading-relaxed">{finding.exploit_scenario}</p>
                     </div>
                 )}
 

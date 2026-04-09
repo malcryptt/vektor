@@ -45,6 +45,7 @@ class AuditService:
                     "description": "string",
                     "severity": "Critical|High|Medium|Low",
                     "remediation": "Textual fix explanation",
+                    "exploit_scenario": "Detailed walkthrough of how an attacker would exploit this specific flaw",
                     "line_start": number,
                     "line_end": number,
                     "code_snippet": "vulnerable line",
@@ -90,9 +91,9 @@ class AuditService:
         findings = []
         code_lines = request.code.split('\n')
         vulnerabilities = [
-            {"title": "Missing Signer Check", "pattern": r"(?i)signer", "severity": "Critical", "remediation": "Add signer check.", "fix": "if !account.is_signer { return Err(ProgramError::MissingRequiredSignature.into()); }"},
-            {"title": "Integer Overflow", "pattern": r"[\+\-\*\/]", "severity": "High", "remediation": "Use checked math.", "fix": ".checked_add(amount).ok_or(error)? "},
-            {"title": "Missing Ownership Check", "pattern": r"(?i)owner", "severity": "High", "remediation": "Verify account owner.", "fix": "if account.owner != program_id { return Err(ProgramError::IncorrectProgramId.into()); }"}
+            {"title": "Missing Signer Check", "pattern": r"(?i)signer", "severity": "Critical", "remediation": "Add signer check.", "fix": "if !account.is_signer { return Err(ProgramError::MissingRequiredSignature.into()); }", "exploit": "Attacker calls the function with an account they do not own, bypassing authorization."},
+            {"title": "Integer Overflow", "pattern": r"[\+\-\*\/]", "severity": "High", "remediation": "Use checked math.", "fix": ".checked_add(amount).ok_or(error)? ", "exploit": "Attacker passes a large value to overflow the balance, resulting in unintended funds being credited."},
+            {"title": "Missing Ownership Check", "pattern": r"(?i)owner", "severity": "High", "remediation": "Verify account owner.", "fix": "if account.owner != program_id { return Err(ProgramError::IncorrectProgramId.into()); }", "exploit": "Attacker passes a fake account owned by a different program to spoof data."}
         ]
 
         found_types = set()
@@ -104,6 +105,7 @@ class AuditService:
                         description=f"Potential {v['title']} detected.",
                         severity=v["severity"],
                         remediation=v["remediation"],
+                        exploit_scenario=v["exploit"],
                         line_start=i + 1,
                         line_end=i + 1,
                         code_snippet=line.strip(),
