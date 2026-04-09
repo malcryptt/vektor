@@ -19,6 +19,7 @@ app.add_middleware(
 
 from .services.audit_service import AuditService
 from .services.pdf_service import PDFService
+from .services.badge_service import BadgeService
 from .models.models import AuditRequest, AuditReport
 from fastapi.responses import Response
 from typing import Dict
@@ -54,6 +55,20 @@ async def export_pdf(audit_id: str):
             headers={"Content-Disposition": f"attachment; filename=vektor_audit_{audit_id}.pdf"}
         )
     return Response(content="Audit not found", status_code=404)
+
+@app.get("/audit/{audit_id}/badge")
+async def get_audit_badge(audit_id: str):
+    if audit_id in audit_history:
+        report = audit_history[audit_id]
+        svg = BadgeService.generate_badge_svg(report.overall_score)
+        return Response(content=svg, media_type="image/svg+xml")
+    return Response(content=BadgeService.generate_badge_svg(0), media_type="image/svg+xml")
+
+@app.get("/on-chain/{program_id}")
+async def simulate_on_chain_fetch(program_id: str):
+    # This is a simulation for hackathon purposes
+    mock_code = f"// Simulated source for {program_id}\nuse anchor_lang::prelude::*;\n\ndeclare_id!(\"{program_id}\");\n\n#[program]\npub mod target_program {{\n    pub fn process(ctx: Context<Process>) -> Result<()> {{\n        Ok(())\n    }}\n}}"
+    return {"code": mock_code}
 
 if __name__ == "__main__":
     import uvicorn

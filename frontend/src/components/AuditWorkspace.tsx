@@ -17,7 +17,8 @@ import {
     Loader2,
     Code2,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Twitter
 } from 'lucide-react';
 import SeverityBadge from '@/components/SeverityBadge';
 import RiskBanner from '@/components/RiskBanner';
@@ -60,7 +61,7 @@ use anchor_lang::prelude::*;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
-pub module simple_vault {
+pub mod simple_vault {
     use super::*;
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         let user = &ctx.accounts.user;
@@ -80,7 +81,7 @@ use anchor_lang::prelude::*;
 declare_id!("6789PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
-pub module secure_staking {
+pub mod secure_staking {
     use super::*;
     pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         let staker = &ctx.accounts.staker;
@@ -116,6 +117,7 @@ export default function AuditWorkspace() {
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'editor' | 'report'>('editor');
     const [auditHistory, setAuditHistory] = useState<AuditSummary[]>([]);
+    const [programId, setProgramId] = useState("");
     const editorRef = useRef<any>(null);
 
     // Persist history to localStorage
@@ -177,6 +179,28 @@ export default function AuditWorkspace() {
         }
     };
 
+    const fetchOnChain = async () => {
+        if (!programId) return;
+        setIsLoading(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiUrl}/on-chain/${programId}`);
+            const data = await res.json();
+            setCode(data.code);
+            setActiveTab('editor');
+        } catch (error) {
+            console.error("Fetch failed", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleShare = () => {
+        if (!report) return;
+        const text = `I just audited my Solana contract with Vektor! 🛡️\nSecurity Score: ${report.overall_score}/100\nCheck out Vektor Security Auditor: https://vektor.security`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -196,7 +220,7 @@ export default function AuditWorkspace() {
     const highCount = report?.findings.filter(f => f.severity === 'High').length || 0;
 
     return (
-        <main className="min-h-screen bg-[#050505] flex flex-col">
+        <main className="min-h-screen bg-[#050505] flex flex-col overflow-hidden">
             <Navbar />
 
             <div className="pt-16 flex-1 flex flex-col overflow-hidden">
@@ -232,10 +256,26 @@ export default function AuditWorkspace() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+                            <Target className="w-3 h-3 text-primary" />
+                            <input
+                                type="text"
+                                placeholder="Program ID..."
+                                value={programId}
+                                onChange={(e) => setProgramId(e.target.value)}
+                                className="bg-transparent border-none outline-none text-[10px] w-32 text-white"
+                            />
+                            <button
+                                onClick={fetchOnChain}
+                                className="text-[10px] hover:text-primary transition-colors font-bold"
+                            >
+                                Fetch
+                            </button>
+                        </div>
+
                         <label className="cursor-pointer flex items-center gap-2 text-xs text-muted hover:text-white transition-colors">
                             <FileUp className="w-4 h-4" />
-                            <span>Upload</span>
                             <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
                         </label>
 
@@ -293,24 +333,40 @@ export default function AuditWorkspace() {
                             <div className="flex-1 flex flex-col overflow-hidden">
                                 {/* Score Indicator */}
                                 <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-bold text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
-                                        <div className="text-3xl font-black">{report.overall_score}<span className="text-xs text-muted font-normal ml-1">/100</span></div>
-                                    </div>
-                                    <div className="relative w-16 h-16">
-                                        <svg className="w-full h-full -rotate-90">
-                                            <circle cx="32" cy="32" r="28" className="stroke-white/5 fill-none" strokeWidth="4" />
-                                            <circle
-                                                cx="32" cy="32" r="28"
-                                                className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
-                                                strokeWidth="4"
-                                                strokeDasharray={176}
-                                                strokeDashoffset={176 - (176 * report.overall_score) / 100}
-                                            />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            {report.overall_score > 80 ? <CheckCircle2 className="w-6 h-6 text-secondary" /> : <AlertCircle className="w-6 h-6 text-primary" />}
+                                    <div className="flex items-center gap-6">
+                                        <div className="relative w-16 h-16">
+                                            <svg className="w-full h-full -rotate-90">
+                                                <circle cx="32" cy="32" r="28" className="stroke-white/5 fill-none" strokeWidth="4" />
+                                                <circle
+                                                    cx="32" cy="32" r="28"
+                                                    className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
+                                                    strokeWidth="4"
+                                                    strokeDasharray={176}
+                                                    strokeDashoffset={176 - (176 * report.overall_score) / 100}
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                {report.overall_score > 80 ? <CheckCircle2 className="w-6 h-6 text-secondary" /> : <AlertCircle className="w-6 h-6 text-primary" />}
+                                            </div>
                                         </div>
+                                        <div>
+                                            <h3 className="font-bold text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
+                                            <div className="text-3xl font-black">{report.overall_score}<span className="text-xs text-muted font-normal ml-1">/100</span></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <img
+                                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/audit/${report.id}/badge`}
+                                            alt="Vektor Badge"
+                                            className="h-8 shadow-lg"
+                                        />
+                                        <button
+                                            onClick={handleShare}
+                                            className="flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-[10px] font-bold transition-all"
+                                        >
+                                            <Twitter className="w-3 h-3" />
+                                            Share Result
+                                        </button>
                                     </div>
                                 </div>
 
