@@ -35,6 +35,7 @@ interface Finding {
     line_end: number;
     code_snippet?: string;
     suggested_fix_code?: string;
+    exploit_scenario?: string;
 }
 
 interface AuditReport {
@@ -52,6 +53,8 @@ interface AuditSummary {
     contract_name: string;
     score: number;
     timestamp: string;
+    report?: any;
+    code?: string;
 }
 
 const SAMPLES = {
