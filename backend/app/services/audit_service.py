@@ -57,6 +57,7 @@ class AuditService:
     @staticmethod
     async def _analyze_with_ai(request: AuditRequest, api_key: str, base_url: Optional[str] = None, model: str = "gpt-4o-mini") -> AuditReport:
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        framework = AuditService.detect_framework(request.code)
         
         system_prompt = """
         You are Vektor, a world-class Solana smart contract security auditor. 
@@ -124,6 +125,7 @@ class AuditService:
     @staticmethod
     async def _analyze_with_heuristic(request: AuditRequest) -> AuditReport:
         await asyncio.sleep(1)
+        framework = AuditService.detect_framework(request.code)
         findings = []
         code_lines = request.code.split('\n')
         vulnerabilities = [
