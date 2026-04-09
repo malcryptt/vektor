@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Editor from '@monaco-editor/react';
@@ -22,7 +22,6 @@ import RiskBanner from '@/components/RiskBanner';
 import ReportCard from '@/components/ReportCard';
 import AuditHistory from '@/components/AuditHistory';
 import MobileNav from '@/components/MobileNav';
-import { useEffect } from 'react';
 
 interface Finding {
     title: string;
@@ -266,7 +265,6 @@ export default function AuditWorkspace() {
                                 scrollBeyondLastLine: false,
                                 readOnly: false,
                                 padding: { top: 20 },
-                                backgroundColor: '#050505',
                             }}
                         />
                     </div>
@@ -324,16 +322,36 @@ export default function AuditWorkspace() {
                                             {report.findings.length === 0 && (
                                                 <div className="p-12 text-center">
                                                     <CheckCircle2 className="w-12 h-12 text-secondary mx-auto mb-4 opacity-50" />
-                                                    <p className="text-sm text-muted">Zero vulnerabilities found. This contract follow best practices.</p>
+                                                    <p className="text-sm text-muted">Zero vulnerabilities found. This contract follows best practices.</p>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Audit History integrated in panel */}
+                                    <AuditHistory
+                                        history={auditHistory}
+                                        onSelectAudit={(id) => {
+                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                            fetch(`${apiUrl}/audit/${id}`)
+                                                .then(res => res.json())
+                                                .then(data => {
+                                                    setReport(data);
+                                                    if (data.raw_code) setCode(data.raw_code);
+                                                });
+                                        }}
+                                    />
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
+
+                <MobileNav
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    hasReport={!!report}
+                />
             </div>
 
             <Footer />
