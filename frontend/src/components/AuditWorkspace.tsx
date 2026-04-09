@@ -33,6 +33,7 @@ interface Finding {
     line_start: number;
     line_end: number;
     code_snippet?: string;
+    suggested_fix_code?: string;
 }
 
 interface AuditReport {
@@ -138,6 +139,13 @@ export default function AuditWorkspace() {
         editorRef.current?.revealLineInCenter(line);
         editorRef.current?.setPosition({ lineNumber: line, column: 1 });
         editorRef.current?.focus();
+    };
+
+    const handleApplyFix = (line: number, fixCode: string) => {
+        const lines = code.split('\n');
+        lines[line - 1] = fixCode;
+        setCode(lines.join('\n'));
+        handleJumpToLine(line);
     };
 
     const runAudit = async () => {
@@ -319,6 +327,7 @@ export default function AuditWorkspace() {
                                                     key={idx}
                                                     finding={finding}
                                                     onJumpToLine={handleJumpToLine}
+                                                    onApplyFix={handleApplyFix}
                                                 />
                                             ))}
                                             {report.findings.length === 0 && (

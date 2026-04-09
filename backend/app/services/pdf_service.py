@@ -2,52 +2,48 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-import io
-from ..models.models import AuditReport
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, XPreformatted
+from io import BytesIO
+import time
 
 class PDFService:
     @staticmethod
-    def generate_report(report: AuditReport) -> bytes:
-        buffer = io.BytesIO()
+    def generate_report(report) -> bytes:
+        buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()
-        
-        # Custom styles
+        elements = []
+
+        # Custom Styles
         title_style = ParagraphStyle(
-            'TitleStyle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            textColor=colors.HexColor("#1A1A1A")
+            'TitleStyle', parent=styles['Heading1'], fontSize=24, 
+            textColor=colors.HexColor("#ff4444"), spaceAfter=20, alignment=1
         )
         
-        elements = []
-        
-        # Header
-        elements.append(Paragraph(f"Vektor Security Audit Report", title_style))
-        elements.append(Paragraph(f"Contract: {report.contract_name}", styles['Heading2']))
-        elements.append(Paragraph(f"Date: {report.timestamp.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+        code_style = ParagraphStyle(
+            'CodeStyle', parent=styles['Normal'], fontName='Courier',
+            fontSize=8, textColor=colors.HexColor("#333333"),
+            leftIndent=20, rightIndent=20, spaceBefore=5, spaceAfter=5,
+            backColor=colors.HexColor("#F4F4F4")
+        )
+
+        elements.append(Paragraph("VEKTOR SECURITY AUDIT", title_style))
+        elements.append(Paragraph(f"Smart Contract: {report.contract_name}", styles['Heading2']))
+        elements.append(Paragraph(f"Safety Score: {report.overall_score}/100", styles['Normal']))
         elements.append(Spacer(1, 20))
-        
-        # Score
-        score_color = colors.green if report.overall_score > 80 else (colors.orange if report.overall_score > 50 else colors.red)
-        elements.append(Paragraph(f"Overall Security Score: <font color='{score_color}'>{report.overall_score}/100</font>", styles['Heading2']))
-        elements.append(Spacer(1, 10))
-        
-        # Summary
-        elements.append(Paragraph("Executive Summary", styles['Heading3']))
-        elements.append(Paragraph(report.summary, styles['Normal']))
-        elements.append(Spacer(1, 20))
-        
-        # Findings
-        elements.append(Paragraph("Detailed Findings", styles['Heading3']))
-        for i, finding in enumerate(report.findings):
-            elements.append(Paragraph(f"{i+1}. {finding.title} ({finding.severity})", styles['Heading4']))
+
+        for finding in report.findings:
+            elements.append(Paragraph(f"<b>{finding.title}</b> ({finding.severity})", styles['Heading3']))
             elements.append(Paragraph(f"<b>Description:</b> {finding.description}", styles['Normal']))
-            elements.append(Paragraph(f"<b>Remediation:</b> {finding.remediation}", styles['Normal']))
-            elements.append(Paragraph(f"<b>Line:</b> {finding.line_start}", styles['Normal']))
-            elements.append(Spacer(1, 10))
             
+            if finding.suggested_fix_code:
+                elements.append(Paragraph("<b>Suggested Fix:</b>", styles['Normal']))
+                elements.append(Spacer(1, 5))
+                elements.append(XPreformatted(finding.suggested_fix_code, code_style))
+                
+            elements.append(Spacer(1, 10))
+
         doc.build(elements)
-        return buffer.getvalue()
+        pdf = buffer.getvalue()
+        buffer.close()
+        return pdf

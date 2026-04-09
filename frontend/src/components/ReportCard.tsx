@@ -10,14 +10,16 @@ interface Finding {
     line_start: number;
     line_end: number;
     code_snippet?: string;
+    suggested_fix_code?: string;
 }
 
 interface ReportCardProps {
     finding: Finding;
     onJumpToLine?: (line: number) => void;
+    onApplyFix?: (line: number, fix: string) => void;
 }
 
-export default function ReportCard({ finding, onJumpToLine }: ReportCardProps) {
+export default function ReportCard({ finding, onJumpToLine, onApplyFix }: ReportCardProps) {
     return (
         <div className="p-5 rounded-xl glass border border-white/5 hover:border-white/10 transition-all group overflow-hidden">
             <div className="flex items-center justify-between mb-4">
@@ -42,7 +44,17 @@ export default function ReportCard({ finding, onJumpToLine }: ReportCardProps) {
                 )}
 
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <p className="text-[9px] text-primary uppercase font-bold mb-1">Expert Remediation</p>
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[9px] text-primary uppercase font-bold">Expert Remediation</p>
+                        {finding.suggested_fix_code && onApplyFix && (
+                            <button
+                                onClick={() => onApplyFix(finding.line_start, finding.suggested_fix_code!)}
+                                className="text-[9px] bg-primary text-white px-2 py-0.5 rounded font-bold hover:bg-primary/80 transition-all uppercase tracking-tighter"
+                            >
+                                Apply Fix
+                            </button>
+                        )}
+                    </div>
                     <p className="text-[11px] text-gray-300 leading-relaxed">{finding.remediation}</p>
                 </div>
             </div>

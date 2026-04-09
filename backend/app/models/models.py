@@ -11,6 +11,7 @@ class AuditFinding(BaseModel):
     line_start: int
     line_end: int
     code_snippet: Optional[str] = None
+    suggested_fix_code: Optional[str] = None
 
 class AuditReport(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
