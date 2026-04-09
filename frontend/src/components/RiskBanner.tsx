@@ -13,11 +13,11 @@ export default function RiskBanner({ criticalCount, highCount }: RiskBannerProps
     return (
         <div className="bg-primary/10 border-y border-primary/20 py-3 px-6 animate-pulse">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <ShieldAlert className="w-5 h-5 text-primary" />
-                    <p className="text-sm font-medium text-primary">
-                        High Risk Detected: {criticalCount} Critical and {highCount} High vulnerabilities found.
-                        Immediate remediation required before deployment.
+                <div className="flex items-center gap-2 md:gap-3">
+                    <ShieldAlert className="w-4 h-4 md:w-5 md:h-5 text-primary shrink-0" />
+                    <p className="text-[10px] md:text-sm font-bold text-primary leading-tight uppercase tracking-tight">
+                        High Risk: {criticalCount} Critical and {highCount} High found.
+                        Remediation required.
                     </p>
                 </div>
                 <div className="hidden md:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/60">

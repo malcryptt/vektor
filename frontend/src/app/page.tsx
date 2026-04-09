@@ -54,7 +54,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-[0.9]"
+              className="text-4xl md:text-7xl font-black tracking-tighter mb-8 leading-[0.9]"
             >
               SECURE THE <br />
               <span className="gradient-text">SOLANA EDGE</span>
@@ -174,9 +174,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto p-12 lg:p-20 rounded-[3rem] bg-white/5 border border-white/10 relative overflow-hidden text-center group">
           <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">READY TO AUDIT?</h2>
-            <p className="text-muted text-lg mb-10 max-w-xl mx-auto italic">Join the next generation of secure Solana builders.</p>
-            <Link href="/audit" className="inline-flex items-center gap-3 bg-white text-black hover:bg-white/90 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all hover:scale-105 active:scale-95">
+            <h2 className="text-3xl md:text-6xl font-black mb-6 tracking-tighter uppercase">READY TO AUDIT?</h2>
+            <p className="text-muted text-sm md:text-lg mb-10 max-w-xl mx-auto italic">Join the next generation of secure Solana builders.</p>
+            <Link href="/audit" className="inline-flex items-center gap-3 bg-white text-black hover:bg-white/90 px-8 md:px-12 py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest transition-all hover:scale-105 active:scale-95">
               Launch App
               <ArrowRight className="w-4 h-4" />
             </Link>

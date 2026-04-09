@@ -45,11 +45,11 @@ export default function HeroTerminal() {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 font-mono text-xs leading-relaxed min-h-[300px] flex flex-col justify-end">
-                    <div className="space-y-2">
+                <div className="p-4 md:p-6 font-mono text-[10px] md:text-xs leading-relaxed min-h-[250px] md:min-h-[300px] flex flex-col justify-end">
+                    <div className="space-y-1.5 md:space-y-2 text-wrap break-all">
                         {AUDIT_LINES.slice(0, visibleLines + 1).map((line, i) => (
-                            <div key={i} className={`flex gap-3 items-start animate-fade-in`}>
-                                <ChevronRight className="w-3 h-3 mt-0.5 opacity-20" />
+                            <div key={i} className={`flex gap-2 md:gap-3 items-start animate-fade-in`}>
+                                <ChevronRight className="w-3 h-3 mt-0.5 opacity-20 shrink-0" />
                                 <span className={line.color}>{line.text}</span>
                             </div>
                         ))}
@@ -65,15 +65,13 @@ export default function HeroTerminal() {
             </div>
 
             {/* Floating Badges */}
-            <div className="absolute -top-6 -right-6 lg:-right-12 p-4 bg-black border border-primary/20 rounded-2xl shadow-2xl animate-bounce-slow hidden sm:block">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <div className="text-[10px] text-muted uppercase font-bold">Risk Detected</div>
-                        <div className="text-sm font-black text-white">Critical Bug</div>
-                    </div>
+            <div className="absolute -top-4 -right-2 md:-top-6 md:-right-6 lg:-right-12 p-3 md:p-4 bg-black border border-primary/20 rounded-2xl shadow-2xl animate-bounce-slow hidden sm:flex items-center gap-3">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                </div>
+                <div>
+                    <div className="text-[8px] md:text-[10px] text-muted uppercase font-bold">Risk Detected</div>
+                    <div className="text-xs md:text-sm font-black text-white">Critical Bug</div>
                 </div>
             </div>
         </div>

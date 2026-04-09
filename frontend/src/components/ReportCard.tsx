@@ -52,12 +52,12 @@ export default function ReportCard({ finding, onJumpToLine, onApplyFix }: Report
                 )}
 
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                         <p className="text-[9px] text-primary uppercase font-bold">Expert Remediation</p>
                         {finding.suggested_fix_code && onApplyFix && (
                             <button
                                 onClick={() => onApplyFix(finding.line_start, finding.suggested_fix_code!)}
-                                className="text-[9px] bg-primary text-white px-2 py-0.5 rounded font-bold hover:bg-primary/80 transition-all uppercase tracking-tighter"
+                                className="text-[9px] bg-primary text-white px-3 py-1 rounded-md font-bold hover:bg-primary/80 transition-all uppercase tracking-tighter w-full sm:w-auto shadow-lg"
                             >
                                 Apply Fix
                             </button>

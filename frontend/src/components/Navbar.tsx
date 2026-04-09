@@ -12,7 +12,8 @@ export default function Navbar() {
                     <Logo className="w-8 h-8" />
                 </Link>
 
-                <div className="flex items-center gap-6">
+                {/* Desktop Links */}
+                <div className="hidden md:flex items-center gap-6">
                     <Link href="/#features" className="text-sm text-muted hover:text-white transition-colors">Features</Link>
                     <div className="h-4 w-[1px] bg-white/10 mx-2" />
                     <div className="flex items-center gap-4">
@@ -23,6 +24,13 @@ export default function Navbar() {
                             Launch App
                         </Link>
                     </div>
+                </div>
+
+                {/* Mobile Button */}
+                <div className="flex md:hidden items-center gap-4">
+                    <Link href="/audit" className="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded-full text-[10px] font-bold transition-all uppercase tracking-widest">
+                        Launch
+                    </Link>
                 </div>
             </div>
         </nav>

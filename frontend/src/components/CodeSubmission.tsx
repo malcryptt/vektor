@@ -36,14 +36,14 @@ export default function CodeSubmission() {
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto px-4 py-20" id="audit-tool">
+        <div className="w-full max-w-5xl mx-auto px-4 py-12 md:py-20" id="audit-tool">
             <div className="glass rounded-2xl overflow-hidden border border-white/10 glow">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-white/5 bg-white/[0.02] gap-4">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                         <input
                             type="text"
                             placeholder="Contract Name (e.g. CandyMachine)"
-                            className="bg-transparent text-sm border-none focus:ring-0 placeholder:text-muted w-64"
+                            className="bg-transparent text-sm border-none focus:ring-0 placeholder:text-muted w-full md:w-64"
                             value={contractName}
                             onChange={(e) => setContractName(e.target.value)}
                         />
@@ -51,7 +51,7 @@ export default function CodeSubmission() {
                     <button
                         onClick={handleAudit}
                         disabled={isLoading || !code}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-6 py-2 rounded-full text-sm font-medium transition-all"
+                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-6 py-3 md:py-2 rounded-xl md:rounded-full text-sm font-bold transition-all w-full md:w-auto uppercase tracking-widest"
                     >
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                         Analyze Contract
@@ -60,7 +60,7 @@ export default function CodeSubmission() {
 
                 <div className="relative group">
                     <textarea
-                        className="w-full h-[500px] bg-black/40 p-8 font-mono text-sm leading-relaxed resize-none border-none focus:ring-0 text-gray-300 placeholder:text-white/10"
+                        className="w-full h-[350px] md:h-[500px] bg-black/40 p-4 md:p-8 font-mono text-[10px] md:text-sm leading-relaxed border-none focus:ring-0 text-gray-300 placeholder:text-white/10 resize-none overflow-y-auto"
                         placeholder="// Paste your Solana smart contract code here (Rust)..."
                         value={code}
                         onChange={(e) => setCode(e.target.value)}

@@ -344,12 +344,12 @@ export default function AuditWorkspace() {
                 <RiskBanner criticalCount={criticalCount} highCount={highCount} />
 
                 {/* Toolbar */}
-                <div className="h-14 border-b border-white/5 bg-white/[0.02] flex items-center justify-between px-6">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 p-1 bg-white/5 rounded-lg border border-white/10">
+                <div className="md:h-14 border-b border-white/5 bg-white/[0.02] flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 md:px-6 py-3 md:py-0 gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex items-center gap-1.5 p-1 bg-white/5 rounded-lg border border-white/10 w-full md:w-auto">
                             <button
                                 onClick={() => setActiveTab('editor')}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'editor' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white'}`}
+                                className={`flex-1 md:flex-none px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-md transition-all ${activeTab === 'editor' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white'}`}
                             >
                                 <Code2 className="w-3.5 h-3.5 inline mr-1.5" />
                                 Editor
@@ -357,34 +357,34 @@ export default function AuditWorkspace() {
                             <button
                                 onClick={() => setActiveTab('report')}
                                 disabled={!report}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'report' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white disabled:opacity-20'}`}
+                                className={`flex-1 md:flex-none px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-md transition-all ${activeTab === 'report' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white disabled:opacity-20'}`}
                             >
                                 <Search className="w-3.5 h-3.5 inline mr-1.5" />
                                 Report
                             </button>
                         </div>
 
-                        <div className="h-6 w-[1px] bg-white/10 mx-2" />
+                        <div className="hidden md:block h-6 w-[1px] bg-white/10 mx-2" />
 
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setCode(SAMPLES.vulnerable)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Vulnerable</button>
-                            <button onClick={() => setCode(SAMPLES.clean)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Clean</button>
-                            <button onClick={() => setCode(SAMPLES.cashio)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Cashio Exploit</button>
-                            <button onClick={() => setCode(SAMPLES.reentrancy)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">Reentrancy</button>
-                            <button onClick={() => setCode(SAMPLES.pda)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">PDA Leak</button>
-                            <button onClick={() => setCode(SAMPLES.vrf)} className="text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-secondary text-secondary">VRF Secure</button>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide no-scrollbar">
+                            <button onClick={() => setCode(SAMPLES.vulnerable)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Vulnerable</button>
+                            <button onClick={() => setCode(SAMPLES.clean)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Clean</button>
+                            <button onClick={() => setCode(SAMPLES.cashio)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Cashio Exploit</button>
+                            <button onClick={() => setCode(SAMPLES.reentrancy)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">Reentrancy</button>
+                            <button onClick={() => setCode(SAMPLES.pda)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-red-500/30 text-red-400">PDA Leak</button>
+                            <button onClick={() => setCode(SAMPLES.vrf)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors border-secondary text-secondary">VRF Secure</button>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+                    <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4">
+                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1 flex-1 md:flex-none">
                             <Target className="w-3 h-3 text-primary" />
                             <input
                                 type="text"
                                 placeholder="Program ID..."
                                 value={programId}
                                 onChange={(e) => setProgramId(e.target.value)}
-                                className="bg-transparent border-none outline-none text-[10px] w-32 text-white"
+                                className="bg-transparent border-none outline-none text-[10px] w-full md:w-32 text-white"
                             />
                             <button
                                 onClick={fetchOnChain}
@@ -394,32 +394,35 @@ export default function AuditWorkspace() {
                             </button>
                         </div>
 
-                        <label className="cursor-pointer flex items-center gap-2 text-xs text-muted hover:text-white transition-colors">
-                            <FileUp className="w-4 h-4" />
-                            <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
-                        </label>
+                        <div className="flex items-center gap-2">
+                            <label className="cursor-pointer p-2 rounded-lg bg-white/5 border border-white/10 text-muted hover:text-white transition-colors">
+                                <FileUp className="w-4 h-4" />
+                                <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
+                            </label>
 
-                        {isLoading && statusMessage ? (
-                            <div className="flex items-center gap-2 px-4">
-                                <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                                <span className="text-[10px] text-muted animate-pulse">{statusMessage}</span>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={runAudit}
-                                disabled={isLoading}
-                                className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,68,68,0.3)]"
-                            >
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
-                                Run Audit
-                            </button>
-                        )}
+                            {isLoading && statusMessage ? (
+                                <div className="flex items-center gap-2 px-2">
+                                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                                    <span className="text-[8px] text-muted animate-pulse max-w-[80px] truncate">{statusMessage}</span>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={runAudit}
+                                    disabled={isLoading}
+                                    className="bg-primary hover:bg-primary/90 text-white px-4 md:px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,68,68,0.3)] uppercase tracking-widest whitespace-nowrap"
+                                >
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}
+                                    <span className="hidden sm:inline">Run Audit</span>
+                                    <span className="sm:hidden">Audit</span>
+                                </button>
+                            )}
 
-                        {report && (
-                            <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
-                                <Download className="w-4 h-4" />
-                            </button>
-                        )}
+                            {report && (
+                                <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0">
+                                    <Download className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -470,37 +473,45 @@ export default function AuditWorkspace() {
                                 </div>
 
                                 {/* Score Indicator */}
-                                <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <div className="p-4 md:p-6 border-b border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-0">
                                     <div className="flex items-center gap-6">
-                                        <div className="relative w-16 h-16">
+                                        <div className="relative w-12 h-12 md:w-16 md:h-16">
                                             <svg className="w-full h-full -rotate-90">
-                                                <circle cx="32" cy="32" r="28" className="stroke-white/5 fill-none" strokeWidth="4" />
+                                                <circle cx="24" cy="24" r="20" className="md:hidden stroke-white/5 fill-none" strokeWidth="4" />
+                                                <circle cx="32" cy="32" r="28" className="hidden md:block stroke-white/5 fill-none" strokeWidth="4" />
+                                                <circle
+                                                    cx="24" cy="24" r="20"
+                                                    className={`md:hidden fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
+                                                    strokeWidth="4"
+                                                    strokeDasharray={126}
+                                                    strokeDashoffset={126 - (126 * report.overall_score) / 100}
+                                                />
                                                 <circle
                                                     cx="32" cy="32" r="28"
-                                                    className={`fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
+                                                    className={`hidden md:block fill-none ${report.overall_score > 80 ? 'stroke-secondary' : 'stroke-primary'}`}
                                                     strokeWidth="4"
                                                     strokeDasharray={176}
                                                     strokeDashoffset={176 - (176 * report.overall_score) / 100}
                                                 />
                                             </svg>
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                {report.overall_score > 80 ? <CheckCircle2 className="w-6 h-6 text-secondary" /> : <AlertCircle className="w-6 h-6 text-primary" />}
+                                                {report.overall_score > 80 ? <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-secondary" /> : <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-primary" />}
                                             </div>
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
-                                            <div className="text-3xl font-black">{report.overall_score}<span className="text-xs text-muted font-normal ml-1">/100</span></div>
+                                            <h3 className="font-bold text-[10px] md:text-sm mb-1 uppercase tracking-widest text-muted">Security Score</h3>
+                                            <div className="text-2xl md:text-3xl font-black">{report.overall_score}<span className="text-[10px] md:text-xs text-muted font-normal ml-1">/100</span></div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-2">
+                                    <div className="flex items-center sm:items-end sm:flex-col gap-3 sm:gap-2 w-full sm:w-auto">
                                         <img
                                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/audit/${report.id}/badge`}
                                             alt="Vektor Badge"
-                                            className="h-8 shadow-lg"
+                                            className="h-6 md:h-8 shadow-lg"
                                         />
                                         <button
                                             onClick={handleShare}
-                                            className="flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-[10px] font-bold transition-all"
+                                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-[9px] md:text-[10px] font-bold transition-all whitespace-nowrap"
                                         >
                                             <Twitter className="w-3 h-3" />
                                             Share Result
