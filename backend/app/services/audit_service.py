@@ -10,16 +10,30 @@ import time
 class AuditService:
     @staticmethod
     async def analyze_code(request: AuditRequest) -> AuditReport:
-        api_key = os.getenv("OPENAI_API_KEY")
-        
-        if api_key:
-            return await AuditService._analyze_with_ai(request, api_key)
-        else:
-            return await AuditService._analyze_with_heuristic(request)
+        # Priority 1: OpenRouter (Free Tier Support)
+        or_key = os.getenv("OPENROUTER_API_KEY")
+        if or_key:
+            return await AuditService._analyze_with_ai(
+                request, 
+                or_key, 
+                base_url="https://openrouter.ai/api/v1",
+                model="google/gemini-2.0-flash-lite-preview-02-05:free"
+            )
+
+        # Priority 2: Standard OpenAI
+        oa_key = os.getenv("OPENAI_API_KEY")
+        if oa_key:
+            return await AuditService._analyze_with_ai(request, oa_key)
+            
+        # Fallback: Heuristic
+        return await AuditService._analyze_with_heuristic(request)
 
     @staticmethod
-    async def _analyze_with_ai(request: AuditRequest, api_key: str) -> AuditReport:
-        client = AsyncOpenAI(api_key=api_key)
+    async def _analyze_with_ai(request: AuditRequest, api_key: str, base_url: Optional[str] = None, model: str = "gpt-4o-mini") -> AuditReport:
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url
+        )
         
         system_prompt = """
         You are Vektor, a world-class Solana smart contract security auditor. 
@@ -49,17 +63,30 @@ class AuditService:
         }
         """
 
+        # Supplemental headers for OpenRouter
+        extra_headers = {}
+        if base_url and "openrouter.ai" in base_url:
+            extra_headers = {
+                "HTTP-Referer": "https://vektor.security",
+                "X-Title": "Vektor Security Auditor"
+            }
+
         try:
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Analyze this Solana contract: \n\n{request.code}"}
                 ],
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
+                extra_headers=extra_headers
             )
             
-            data = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("Empty response from AI")
+                
+            data = json.loads(content)
             findings = [AuditFinding(**f) for f in data["findings"]]
             
             return AuditReport(
@@ -72,12 +99,11 @@ class AuditService:
                 raw_code=request.code
             )
         except Exception as e:
-            print(f"AI Audit failed: {e}. Falling back to heuristic.")
+            print(f"AI Audit failed ({model}): {e}. Falling back to heuristic.")
             return await AuditService._analyze_with_heuristic(request)
 
     @staticmethod
     async def _analyze_with_heuristic(request: AuditRequest) -> AuditReport:
-        # Simulate processing time
         await asyncio.sleep(1.5)
         
         findings = []
