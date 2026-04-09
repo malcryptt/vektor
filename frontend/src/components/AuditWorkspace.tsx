@@ -257,7 +257,7 @@ export default function AuditWorkspace() {
                             defaultLanguage="rust"
                             theme="vs-dark"
                             value={code}
-                            onChange={(val) => setCode(val || "")}
+                            onChange={(val: string | undefined) => setCode(val || "")}
                             onMount={handleEditorDidMount}
                             options={{
                                 minimap: { enabled: false },
