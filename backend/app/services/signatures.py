@@ -31,6 +31,13 @@ SIGNATURES = [
         reference="Mango Markets Hack 2022",
         description="The program consumes an oracle price without asserting staleness checks (timestamps or slot verification).",
         remediation="Assert that the oracle price was updated within an acceptable slot or timestamp window before acting on it."
+    ),
+    SignatureConfig(
+        name="Jito Bundle/MEV Vulnerability",
+        pattern=r"tip_account|jito_bundle|bundle_results",
+        reference="Jito MEV Best Practices",
+        description="The program may be susceptible to sandwich attacks or atomic bundle manipulation if it doesn't verify tip payments before committing state.",
+        remediation="Explicitly verify that the Jito tip for the current bundle has been processed before finalizing high-value state transitions."
     )
 ]
 
@@ -43,16 +50,13 @@ def pre_scan(code: str) -> List[AuditFinding]:
         for sig in SIGNATURES:
             if sig.reference not in found_refs and sig.pattern.search(line):
                 findings.append(AuditFinding(
-                    title=sig.name,
-                    description=sig.description,
-                    severity="Critical",
-                    remediation=sig.remediation,
-                    exploit_scenario=f"This code signature strongly resembles the root cause of the {sig.reference}.",
-                    line_start=i + 1,
-                    line_end=i + 1,
-                    code_snippet=line.strip(),
-                    corrected_code=None,
-                    source="signature"
+                    vulnerability=sig.name,
+                    explanation=f"{sig.description}. This pattern resembles the root cause of {sig.reference}.",
+                    severity="High",
+                    recommendation=sig.remediation,
+                    line_number=i + 1,
+                    source="signature",
+                    confidence_score=95
                 ))
                 found_refs.add(sig.reference)
                 

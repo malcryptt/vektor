@@ -11,26 +11,27 @@ import { Code2 } from 'lucide-react';
 hljs.registerLanguage('rust', rust);
 
 interface Finding {
-    title: string;
-    description: string;
+    vulnerability: string;
     severity: string;
-    remediation: string;
-    exploit_scenario?: string;
-    line_start: number;
-    line_end: number;
-    code_snippet?: string;
+    explanation: string;
+    recommendation: string;
     corrected_code?: string | null;
+    exploit_poc?: string | null;
+    anchor_test?: string | null;
+    confidence_score?: number;
+    line_number?: number | null;
     source?: string;
 }
 
 interface ReportCardProps {
     finding: Finding;
-    onJumpToLine?: (line: number) => void;
-    onApplyFix?: (line: number, fix: string) => void;
+    onJumpToLine?: (line: number | null | undefined) => void;
+    onApplyFix?: (line: number | null | undefined, fix: string) => void;
 }
 
 export default function ReportCard({ finding, onJumpToLine, onApplyFix }: ReportCardProps) {
     const [isFixExpanded, setIsFixExpanded] = useState(false);
+    const [activeTab, setActiveTab] = useState<'fix' | 'poc' | 'test'>('fix');
 
     useEffect(() => {
         if (isFixExpanded) {
@@ -45,80 +46,93 @@ export default function ReportCard({ finding, onJumpToLine, onApplyFix }: Report
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
                 <div className="flex items-center gap-2">
                     <SeverityBadge severity={finding.severity} />
-                    {finding.source === "signature" && (
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] uppercase tracking-widest font-black">
-                            <AlertOctagon className="w-3 h-3" />
-                            Known Exploit Pattern
-                        </div>
+                    {finding.confidence_score && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold ${finding.confidence_score > 80 ? 'bg-secondary/10 border-secondary/20 text-secondary' :
+                                finding.confidence_score > 60 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
+                                    'bg-red-500/10 border-red-500/20 text-red-500'
+                            }`}>
+                            {finding.confidence_score}% Confidence
+                        </span>
                     )}
                 </div>
                 <button
-                    onClick={() => onJumpToLine?.(finding.line_start)}
+                    onClick={() => onJumpToLine?.(finding.line_number)}
                     className="text-[10px] text-muted uppercase tracking-widest hover:text-primary transition-colors shrink-0"
                 >
-                    Line {finding.line_start}
+                    Line {finding.line_number}
                 </button>
             </div>
 
-            <h4 className="text-sm font-bold mb-1 group-hover:text-primary transition-colors">{finding.title}</h4>
-            {finding.source === "signature" && (
-                <p className="text-[10px] text-red-500/80 italic mb-2 font-bold tracking-tight">This pattern matches a real-world exploit.</p>
-            )}
-            <p className="text-xs text-muted leading-relaxed mb-4">{finding.description}</p>
+            <h4 className="text-sm font-bold mb-1 group-hover:text-primary transition-colors">{finding.vulnerability}</h4>
+            <p className="text-xs text-muted leading-relaxed mb-4">{finding.explanation}</p>
 
             <div className="space-y-3">
-                {finding.code_snippet && (
-                    <div className="p-3 rounded-lg bg-black/40 border border-white/5 font-mono text-[10px] text-gray-400 overflow-x-auto">
-                        <span className="text-primary/50 mr-2">{finding.line_start}|</span>
-                        {finding.code_snippet}
-                    </div>
-                )}
-
-                {finding.exploit_scenario && (
-                    <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
-                        <p className="text-[9px] text-primary uppercase font-bold mb-1">Attacker Logic (Simulation)</p>
-                        <p className="text-[11px] text-gray-400 italic leading-relaxed">{finding.exploit_scenario}</p>
-                    </div>
-                )}
-
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2">
                         <p className="text-[9px] text-primary uppercase font-bold">Expert Remediation</p>
                         {finding.corrected_code && onApplyFix && (
                             <button
-                                onClick={() => onApplyFix(finding.line_start, finding.corrected_code!)}
+                                onClick={() => onApplyFix(finding.line_number, finding.corrected_code!)}
                                 className="text-[9px] bg-primary text-white px-3 py-1 rounded-md font-bold hover:bg-primary/80 transition-all uppercase tracking-tighter w-full sm:w-auto shadow-lg"
                             >
                                 Apply Fix
                             </button>
                         )}
                     </div>
-                    <p className="text-[11px] text-gray-300 leading-relaxed">{finding.remediation}</p>
+                    <p className="text-[11px] text-gray-300 leading-relaxed">{finding.recommendation}</p>
                 </div>
 
-                {finding.corrected_code && (
+                {(finding.corrected_code || finding.exploit_poc || finding.anchor_test) && (
                     <div className="mt-4 pt-4 border-t border-white/10">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex items-center gap-1.5">
-                                <Code2 className="w-3.5 h-3.5" />
-                                Suggested Fix
-                            </span>
-                            <button
-                                onClick={() => setIsFixExpanded(!isFixExpanded)}
-                                className="text-[9px] px-3 py-1 rounded-md border transition-all text-[#00cc66] border-[#00cc66] hover:bg-[#00cc66]/10 uppercase tracking-widest font-bold"
-                            >
-                                {isFixExpanded ? "Hide Fix" : "Show Fix"}
-                            </button>
-                        </div>
-                        {isFixExpanded && (
-                            <div className="mt-2 text-[10px] rounded-lg overflow-hidden border border-white/5">
-                                <pre className="m-0! p-3!">
-                                    <code className="language-rust">
-                                        {finding.corrected_code}
-                                    </code>
-                                </pre>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                                {finding.corrected_code && (
+                                    <button
+                                        onClick={() => { setActiveTab('fix'); setIsFixExpanded(true); }}
+                                        className={`text-[9px] px-3 py-1 rounded-md uppercase tracking-widest font-bold transition-all border ${activeTab === 'fix' ? 'bg-primary text-white border-primary' : 'text-muted border-white/10 hover:border-white/20'}`}
+                                    >
+                                        Fix
+                                    </button>
+                                )}
+                                {finding.exploit_poc && (
+                                    <button
+                                        onClick={() => { setActiveTab('poc'); setIsFixExpanded(true); }}
+                                        className={`text-[9px] px-3 py-1 rounded-md uppercase tracking-widest font-bold transition-all border ${activeTab === 'poc' ? 'bg-red-500 text-white border-red-500' : 'text-muted border-white/10 hover:border-white/20'}`}
+                                    >
+                                        Exploit PoC
+                                    </button>
+                                )}
+                                {finding.anchor_test && (
+                                    <button
+                                        onClick={() => { setActiveTab('test'); setIsFixExpanded(true); }}
+                                        className={`text-[9px] px-3 py-1 rounded-md uppercase tracking-widest font-bold transition-all border ${activeTab === 'test' ? 'bg-secondary text-primary border-secondary' : 'text-muted border-white/10 hover:border-white/20'}`}
+                                    >
+                                        Anchor Test
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsFixExpanded(!isFixExpanded)}
+                                    className="ml-auto text-[9px] px-3 py-1 text-muted hover:text-white uppercase tracking-widest"
+                                >
+                                    {isFixExpanded ? "Collapse" : "Expand"}
+                                </button>
                             </div>
-                        )}
+
+                            {isFixExpanded && (
+                                <div className="text-[10px] rounded-lg overflow-hidden border border-white/5">
+                                    <div className="bg-white/[0.03] px-3 py-1.5 border-b border-white/5 flex items-center justify-between">
+                                        <span className="text-[8px] uppercase font-bold tracking-widest text-muted">
+                                            {activeTab === 'fix' ? 'rust / fixed' : activeTab === 'poc' ? 'typescript / exploit' : 'typescript / mocha'}
+                                        </span>
+                                    </div>
+                                    <pre className="p-3 bg-black/40">
+                                        <code className={activeTab === 'fix' ? 'language-rust' : 'language-typescript'}>
+                                            {activeTab === 'fix' ? finding.corrected_code : activeTab === 'poc' ? finding.exploit_poc : finding.anchor_test}
+                                        </code>
+                                    </pre>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

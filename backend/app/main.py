@@ -21,12 +21,13 @@ app.add_middleware(
 from .services.audit_service import AuditService
 from .services.pdf_service import PDFService
 from .services.badge_service import BadgeService
+from .services.certificate_service import CertificateService
 from .models.models import AuditRequest, AuditReport
 from fastapi.responses import Response
 from typing import Dict
 
 # Audit history (in-memory mock)
-audit_history: Dict[str, AuditReport] = {}
+reports_db: Dict[str, AuditReport] = {}
 
 @app.get("/")
 async def root():
@@ -47,8 +48,8 @@ async def get_audit(audit_id: str):
 
 @app.get("/audit/{audit_id}/pdf")
 async def export_pdf(audit_id: str):
-    if audit_id in audit_history:
-        report = audit_history[audit_id]
+    if audit_id in reports_db:
+        report = reports_db[audit_id]
         pdf_bytes = PDFService.generate_report(report)
         return Response(
             content=pdf_bytes,
@@ -59,11 +60,23 @@ async def export_pdf(audit_id: str):
 
 @app.get("/audit/{audit_id}/badge")
 async def get_audit_badge(audit_id: str):
-    if audit_id in audit_history:
-        report = audit_history[audit_id]
+    if audit_id in reports_db:
+        report = reports_db[audit_id]
         svg = BadgeService.generate_badge_svg(report.overall_score)
         return Response(content=svg, media_type="image/svg+xml")
     return Response(content=BadgeService.generate_badge_svg(0), media_type="image/svg+xml")
+
+@app.post("/chat")
+async def chat_advisor(request: Request):
+    data = await request.json()
+    report_id = data.get("report_id")
+    message = data.get("message")
+    history = data.get("history", [])
+    code = data.get("code", "")
+    
+    report = reports_db.get(report_id)
+    reply = await AuditService.chat_advisor(message, history, report, code)
+    return {"reply": reply}
 
 @app.get("/badge/{score}")
 async def get_score_badge(score: int):
@@ -75,6 +88,14 @@ async def simulate_on_chain_fetch(program_id: str):
     # This is a simulation for hackathon purposes
     mock_code = f"// Simulated source for {program_id}\nuse anchor_lang::prelude::*;\n\ndeclare_id!(\"{program_id}\");\n\n#[program]\npub mod target_program {{\n    pub fn process(ctx: Context<Process>) -> Result<()> {{\n        Ok(())\n    }}\n}}"
     return {"code": mock_code}
+
+@app.get("/audit/{audit_id}/certificate")
+async def get_certificate(audit_id: str):
+    if audit_id in reports_db:
+        report = reports_db[audit_id]
+        cert = CertificateService.generate_certificate(audit_id, report.overall_score)
+        return cert
+    return Response(content="Audit not found", status_code=404)
 
 if __name__ == "__main__":
     import uvicorn

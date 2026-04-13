@@ -18,7 +18,10 @@ import {
     Code2,
     CheckCircle2,
     AlertCircle,
-    Twitter
+    Twitter,
+    MessageSquare,
+    Send,
+    X
 } from 'lucide-react';
 import SeverityBadge from '@/components/SeverityBadge';
 import RiskBanner from '@/components/RiskBanner';
@@ -28,15 +31,15 @@ import AuditHistory from '@/components/AuditHistory';
 import MobileNav from '@/components/MobileNav';
 
 interface Finding {
-    title: string;
-    description: string;
+    vulnerability: string;
     severity: string;
-    remediation: string;
-    line_start: number;
-    line_end: number;
-    code_snippet?: string;
+    explanation: string;
+    recommendation: string;
     corrected_code?: string | null;
-    exploit_scenario?: string;
+    exploit_poc?: string | null;
+    anchor_test?: string | null;
+    confidence_score?: number;
+    line_number?: number | null;
     source?: string;
 }
 
@@ -46,6 +49,7 @@ interface AuditReport {
     contract_name: string;
     overall_score: number;
     summary: string;
+    risk_level: string;
     findings: Finding[];
     raw_code: string;
     framework?: string;
@@ -188,14 +192,19 @@ pub struct InitPool<'info> {
 };
 
 export default function AuditWorkspace() {
-    const [code, setCode] = useState(SAMPLES.vulnerable);
+    const [code, setCode] = useState("");
     const [report, setReport] = useState<AuditReport | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'editor' | 'report'>('editor');
+    const [activeTab, setActiveTab] = useState<'editor' | 'report' | 'diff'>('editor');
+    const [diffCode, setDiffCode] = useState<string>('');
     const [auditHistory, setAuditHistory] = useState<AuditSummary[]>([]);
     const [programId, setProgramId] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
     const [decorations, setDecorations] = useState<any[]>([]);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatInput, setChatInput] = useState("");
+    const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+    const [isChatLoading, setIsChatLoading] = useState(false);
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
 
@@ -221,7 +230,7 @@ export default function AuditWorkspace() {
         if (!editorRef.current || !report) return;
 
         const newDecorations = report.findings.map(f => ({
-            range: new monacoRef.current.Range(f.line_start, 1, f.line_end, 1),
+            range: new monacoRef.current.Range(f.line_number || 1, 1, f.line_number || 1, 1),
             options: {
                 isWholeLine: true,
                 className: f.severity === 'Critical' || f.severity === 'High' ? 'bg-primary/20' : 'bg-yellow-500/10',
@@ -233,14 +242,16 @@ export default function AuditWorkspace() {
         setDecorations(decorationIds);
     }, [report, code]);
 
-    const handleJumpToLine = (line: number) => {
+    const handleJumpToLine = (line: number | null | undefined) => {
+        if (line === null || line === undefined) return;
         setActiveTab('editor');
         editorRef.current?.revealLineInCenter(line);
         editorRef.current?.setPosition({ lineNumber: line, column: 1 });
         editorRef.current?.focus();
     };
 
-    const handleApplyFix = (line: number, fixCode: string) => {
+    const handleApplyFix = (line: number | null | undefined, fixCode: string) => {
+        if (line === null || line === undefined) return;
         const lines = code.split('\n');
         lines[line - 1] = fixCode;
         setCode(lines.join('\n'));
@@ -261,6 +272,7 @@ export default function AuditWorkspace() {
             });
             const data = await response.json();
             setReport(data);
+            setChatHistory([]); // Clear chat for new report
             setActiveTab('report');
 
             // Add to history
@@ -279,6 +291,35 @@ export default function AuditWorkspace() {
         } finally {
             setIsLoading(false);
             setStatusMessage("");
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim() || !report) return;
+
+        const userMessage = { role: 'user' as const, content: chatInput };
+        setChatHistory(prev => [...prev, userMessage]);
+        setChatInput("");
+        setIsChatLoading(true);
+
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    report_id: report.id,
+                    message: chatInput,
+                    history: chatHistory,
+                    code: code
+                }),
+            });
+            const data = await response.json();
+            setChatHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        } catch (error) {
+            setChatHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I lost connection to the Vektor core. Try again?" }]);
+        } finally {
+            setIsChatLoading(false);
         }
     };
 
@@ -324,8 +365,34 @@ export default function AuditWorkspace() {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => setCode(e.target?.result as string);
-            reader.readAsText(file);
+            if (file.name.endsWith('.zip')) {
+                reader.onload = async (e) => {
+                    const base64 = (e.target?.result as string).split(',')[1];
+                    setIsLoading(true);
+                    setStatusMessage("Analyzing Multi-file ZIP Bundle...");
+                    try {
+                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                        const res = await fetch(`${apiUrl}/audit`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ zip_data: base64, contract_name: file.name }),
+                        });
+                        const data = await res.json();
+                        setReport(data);
+                        setCode(data.raw_code);
+                        setActiveTab('report');
+                    } catch (err) {
+                        alert("ZIP Audit failed.");
+                    } finally {
+                        setIsLoading(false);
+                        setStatusMessage("");
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                reader.onload = (e) => setCode(e.target?.result as string);
+                reader.readAsText(file);
+            }
         }
     };
 
@@ -364,6 +431,13 @@ export default function AuditWorkspace() {
                                 <Search className="w-3.5 h-3.5 inline mr-1.5" />
                                 Report
                             </button>
+                            <button
+                                onClick={() => setActiveTab('diff')}
+                                className={`flex-1 md:flex-none px-3 py-1.5 text-[10px] md:text-xs font-semibold rounded-md transition-all ${activeTab === 'diff' ? 'bg-primary text-white shadow-lg' : 'text-muted hover:text-white'}`}
+                            >
+                                <History className="w-3.5 h-3.5 inline mr-1.5" />
+                                Diff
+                            </button>
                         </div>
 
                         <div className="hidden md:block h-6 w-[1px] bg-white/10 mx-2" />
@@ -399,7 +473,7 @@ export default function AuditWorkspace() {
                         <div className="flex items-center gap-2">
                             <label className="cursor-pointer p-2 rounded-lg bg-white/5 border border-white/10 text-muted hover:text-white transition-colors">
                                 <FileUp className="w-4 h-4" />
-                                <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt" />
+                                <input type="file" className="hidden" onChange={handleFileUpload} accept=".rs,.txt,.zip" />
                             </label>
 
                             {isLoading && statusMessage ? (
@@ -420,14 +494,29 @@ export default function AuditWorkspace() {
                             )}
 
                             {report && (
-                                <>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => alert("Helius Webhook Registered for this program!")}
+                                        className="px-3 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-orange-500 text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2"
+                                    >
+                                        <Shield className="w-3.5 h-3.5" />
+                                        Helius Monitor
+                                    </button>
+                                    <button
+                                        onClick={() => window.open('https://v4.squads.so', '_blank')}
+                                        className="px-3 py-1.5 rounded-lg bg-[#00FFBD]/10 hover:bg-[#00FFBD]/20 border border-[#00FFBD]/20 text-[#00FFBD] text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2"
+                                    >
+                                        <Target className="w-3.5 h-3.5" />
+                                        Squads Fix
+                                    </button>
+                                    <div className="w-[1px] h-6 bg-white/5 mx-1" />
                                     <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0">
                                         <Download className="w-4 h-4" />
                                     </button>
                                     <button onClick={handleShare} className="p-2 rounded-lg bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 border border-[#1DA1F2]/20 text-[#1DA1F2] transition-colors shrink-0">
                                         <Twitter className="w-4 h-4" />
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -456,8 +545,55 @@ export default function AuditWorkspace() {
                         />
                     </div>
 
+                    {/* Diff Mode Tab */}
+                    {activeTab === 'diff' && (
+                        <div className="flex-1 flex flex-col md:flex-row bg-[#0A0A0A] overflow-hidden">
+                            <div className="flex-1 flex flex-col border-r border-white/5">
+                                <div className="p-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Original (V1)</span>
+                                </div>
+                                <Editor
+                                    height="100%"
+                                    defaultLanguage="rust"
+                                    theme="vs-dark"
+                                    value={code}
+                                    options={{ minimap: { enabled: false }, fontSize: 12, readOnly: true }}
+                                />
+                            </div>
+                            <div className="flex-1 flex flex-col">
+                                <div className="p-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Revised (V2)</span>
+                                    <button
+                                        className="text-[10px] text-primary hover:underline font-bold"
+                                        onClick={() => {
+                                            const fileInput = document.createElement('input');
+                                            fileInput.type = 'file';
+                                            fileInput.onchange = (e: any) => {
+                                                const file = e.target.files[0];
+                                                const reader = new FileReader();
+                                                reader.onload = (re) => setDiffCode(re.target?.result as string);
+                                                reader.readAsText(file);
+                                            };
+                                            fileInput.click();
+                                        }}
+                                    >
+                                        Upload V2
+                                    </button>
+                                </div>
+                                <Editor
+                                    height="100%"
+                                    defaultLanguage="rust"
+                                    theme="vs-dark"
+                                    value={diffCode || "// Upload your revised code to compare..."}
+                                    onChange={(v) => setDiffCode(v || "")}
+                                    options={{ minimap: { enabled: false }, fontSize: 12 }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Right: Results Panel */}
-                    <div className={`w-full lg:w-[450px] border-l border-white/5 bg-white/[0.01] flex flex-col ${activeTab === 'editor' ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className={`w-full lg:w-[450px] border-l border-white/5 bg-white/[0.01] flex flex-col ${activeTab === 'editor' ? 'hidden lg:flex' : activeTab === 'diff' ? 'hidden' : 'flex'}`}>
                         {!report ? (
                             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
                                 <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/10">
@@ -482,6 +618,32 @@ export default function AuditWorkspace() {
                                 {/* Security Score & Risk Banner */}
                                 <SecurityScore score={report.overall_score} />
                                 <RiskBanner criticalCount={criticalCount} highCount={highCount} />
+
+                                {/* Audit Certificate Button */}
+                                {report.overall_score >= 90 && (
+                                    <div className="px-6 py-2">
+                                        <button
+                                            onClick={async () => {
+                                                setStatusMessage("Minting Metaplex Audit NFT...");
+                                                setIsLoading(true);
+                                                try {
+                                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/audit/${report.id}/certificate`);
+                                                    const data = await res.json();
+                                                    alert(`Success! Audit Certificate Minted: ${data.mint_address}\nView on Explorer: ${data.explorer_url}`);
+                                                } catch (e) {
+                                                    alert("Minting failed. RPC overloaded.");
+                                                } finally {
+                                                    setIsLoading(false);
+                                                    setStatusMessage("");
+                                                }
+                                            }}
+                                            className="w-full py-3 rounded-xl border border-[#00FFBD]/30 bg-[#00FFBD]/5 hover:bg-[#00FFBD]/10 text-[#00FFBD] text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group"
+                                        >
+                                            <Shield className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                                            Mint On-chain Certificate
+                                        </button>
+                                    </div>
+                                )}
 
 
                                 {/* Findings Scroll Area */}
@@ -559,6 +721,81 @@ export default function AuditWorkspace() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Chat Advisor Toggle */}
+                        {report && (
+                            <button
+                                onClick={() => setIsChatOpen(!isChatOpen)}
+                                className={`fixed bottom-20 right-6 z-40 p-4 rounded-full shadow-2xl transition-all duration-300 ${isChatOpen ? 'bg-primary scale-0' : 'bg-primary hover:scale-110 shadow-primary/20'}`}
+                            >
+                                <MessageSquare className="w-6 h-6 text-white" />
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00FFBD] rounded-full border-2 border-[#050505] animate-pulse" />
+                            </button>
+                        )}
+
+                        {/* Chat Advisor Panel */}
+                        <div className={`fixed top-16 bottom-0 right-0 w-full sm:w-[400px] bg-[#0A0A0A] border-l border-white/5 z-50 transform transition-transform duration-300 ease-in-out shadow-2xl flex flex-col ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                                        <Shield className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-bold text-white leading-none">Vektor Security Advisor</h3>
+                                        <p className="text-[10px] text-muted">AI Expert Insights</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsChatOpen(false)} className="p-1 hover:bg-white/5 rounded-md transition-colors">
+                                    <X className="w-4 h-4 text-muted" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                                {chatHistory.length === 0 && (
+                                    <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 text-muted">
+                                            <MessageSquare className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-xs text-muted leading-relaxed">Ask me anything about the audit results or specific lines of code. I can explain vulnerabilities or help you draft a fix.</p>
+                                    </div>
+                                )}
+                                {chatHistory.map((msg, i) => (
+                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-white/5 text-gray-300 border border-white/5 rounded-tl-none'}`}>
+                                            {msg.content}
+                                        </div>
+                                    </div>
+                                ))}
+                                {isChatLoading && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-white/5 border border-white/5 p-3 rounded-2xl rounded-tl-none flex items-center gap-2">
+                                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                                            <span className="text-[10px] text-muted">Vektor is thinking...</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-4 border-t border-white/5 bg-black/20">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                        placeholder="Ask a security question..."
+                                        className="w-full bg-[#151515] border border-white/10 rounded-xl py-3 pl-4 pr-12 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-muted/50"
+                                    />
+                                    <button
+                                        onClick={handleSendMessage}
+                                        disabled={!chatInput.trim() || isChatLoading}
+                                        className="absolute right-2 top-1.5 p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all disabled:opacity-20"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
