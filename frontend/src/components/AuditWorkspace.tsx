@@ -208,6 +208,24 @@ export default function AuditWorkspace() {
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
 
+    // Persist History (Fix: Audit History doesn't work)
+    useEffect(() => {
+        const saved = localStorage.getItem('vektor_audit_history');
+        if (saved) {
+            try {
+                setAuditHistory(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to load history", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (auditHistory.length > 0) {
+            localStorage.setItem('vektor_audit_history', JSON.stringify(auditHistory));
+        }
+    }, [auditHistory]);
+
     // Persist history to localStorage
     useEffect(() => {
         const saved = localStorage.getItem('vektor_history');
@@ -278,7 +296,7 @@ export default function AuditWorkspace() {
             // Add to history
             const newAudit: AuditSummary = {
                 id: data.id,
-                contract_name: "Session Audit",
+                contract_name: programId || data.contract_name || "Session Audit",
                 score: data.overall_score,
                 timestamp: new Date().toISOString(),
                 report: data,
@@ -600,7 +618,28 @@ export default function AuditWorkspace() {
                                     <Shield className="w-8 h-8 text-muted" />
                                 </div>
                                 <h3 className="text-lg font-bold mb-2">No active analysis</h3>
-                                <p className="text-sm text-muted">Upload your Solana smart contract or select a sample to begin the AI security audit.</p>
+                                <p className="text-sm text-muted mb-8">Upload your Solana smart contract or select a sample to begin the AI security audit.</p>
+
+                                <div className="w-full max-w-sm">
+                                    <AuditHistory
+                                        history={auditHistory}
+                                        onSelectAudit={(id, historyReport, historyCode) => {
+                                            if (historyReport) {
+                                                setReport(historyReport);
+                                                if (historyCode) setCode(historyCode);
+                                                setActiveTab('report');
+                                                return;
+                                            }
+                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                            fetch(`${apiUrl}/audit/${id}`)
+                                                .then(res => res.json())
+                                                .then(data => {
+                                                    setReport(data);
+                                                    if (data.raw_code) setCode(data.raw_code);
+                                                });
+                                        }}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col overflow-hidden">
@@ -678,27 +717,27 @@ export default function AuditWorkspace() {
                                         </div>
                                     </div>
 
-                                    {/* Audit History integrated in panel */}
-                                    <AuditHistory
-                                        history={auditHistory}
-                                        onSelectAudit={(id, historyReport, historyCode) => {
-                                            if (historyReport) {
-                                                setReport(historyReport);
-                                                if (historyCode) setCode(historyCode);
-                                                setActiveTab('report');
-                                                return;
-                                            }
-
-                                            // Fallback to fetch if not cached (legacy)
-                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                                            fetch(`${apiUrl}/audit/${id}`)
-                                                .then(res => res.json())
-                                                .then(data => {
-                                                    setReport(data);
-                                                    if (data.raw_code) setCode(data.raw_code);
-                                                });
-                                        }}
-                                    />
+                                    {/* History integrated in panel footer */}
+                                    <div className="border-t border-white/5 bg-black/10">
+                                        <AuditHistory
+                                            history={auditHistory}
+                                            onSelectAudit={(id, historyReport, historyCode) => {
+                                                if (historyReport) {
+                                                    setReport(historyReport);
+                                                    if (historyCode) setCode(historyCode);
+                                                    setActiveTab('report');
+                                                    return;
+                                                }
+                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                fetch(`${apiUrl}/audit/${id}`)
+                                                    .then(res => res.json())
+                                                    .then(data => {
+                                                        setReport(data);
+                                                        if (data.raw_code) setCode(data.raw_code);
+                                                    });
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* Embed Badge Section */}
                                     <div className="mt-8 pt-6 border-t border-white/5 px-2">
