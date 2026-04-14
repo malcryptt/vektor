@@ -3,11 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-
+from typing import Dict, List, Optional
 import os
 import json
 import pickle
-from .models.models import AuditReport
+
+from .models.models import AuditReport, AuditRequest
+from .services.audit_service import AuditService
+from .services.pdf_service import PDFService
+from .services.badge_service import BadgeService
+from .services.certificate_service import CertificateService
+from fastapi.responses import Response
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Vektor Security API")
@@ -41,15 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-from .services.audit_service import AuditService
-from .services.pdf_service import PDFService
-from .services.badge_service import BadgeService
-from .services.certificate_service import CertificateService
-from .models.models import AuditRequest, AuditReport
-from fastapi.responses import Response
-from typing import Dict
-
 
 @app.get("/")
 async def root():

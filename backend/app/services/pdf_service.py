@@ -43,7 +43,18 @@ class PDFService:
                 
             elements.append(Spacer(1, 10))
 
-        doc.build(elements)
+        def add_watermark(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica-Bold', 100)
+            canvas.setStrokeColor(colors.lightgrey)
+            canvas.setFillGray(0.9)
+            # Center of the page for watermark
+            canvas.translate(300, 450)
+            canvas.rotate(45)
+            canvas.drawCentredString(0, 0, "VEKTOR")
+            canvas.restoreState()
+
+        doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
         pdf = buffer.getvalue()
         buffer.close()
         return pdf

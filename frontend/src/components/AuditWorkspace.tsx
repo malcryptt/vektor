@@ -321,10 +321,17 @@ export default function AuditWorkspace() {
                     code: code
                 }),
             });
+
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
             const data = await response.json();
             setChatHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
-        } catch (error) {
-            setChatHistory(prev => [...prev, { role: 'assistant', content: "Sorry, I lost connection to the Vektor core. Try again?" }]);
+        } catch (error: any) {
+            console.error("Chat Advisor Error:", error);
+            setChatHistory(prev => [...prev, {
+                role: 'assistant',
+                content: `Sorry, I'm having trouble connecting to the Vektor core (${error.message}). Please ensure the backend is running.`
+            }]);
         } finally {
             setIsChatLoading(false);
         }
