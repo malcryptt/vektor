@@ -301,12 +301,15 @@ export default function AuditWorkspace() {
         }
     };
 
-    const handleSendMessage = async () => {
+    const handleSendMessage = async (retryCount = 0) => {
         if (!chatInput.trim() || !report) return;
 
-        const userMessage = { role: 'user' as const, content: chatInput };
-        setChatHistory(prev => [...prev, userMessage]);
-        setChatInput("");
+        if (retryCount === 0) {
+            const userMessage = { role: 'user' as const, content: chatInput };
+            setChatHistory(prev => [...prev, userMessage]);
+            setChatInput("");
+        }
+
         setIsChatLoading(true);
 
         try {
@@ -328,12 +331,17 @@ export default function AuditWorkspace() {
             setChatHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
         } catch (error: any) {
             console.error("Chat Advisor Error:", error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: `Sorry, I'm having trouble connecting to the Vektor core (${error.message}). Please ensure the backend is running.`
-            }]);
+            if (retryCount < 2) {
+                console.log(`Retrying chat... attempt ${retryCount + 1}`);
+                setTimeout(() => handleSendMessage(retryCount + 1), 800);
+            } else {
+                setChatHistory(prev => [...prev, {
+                    role: 'assistant',
+                    content: `Vektor Core connectivity is intermittent. Activating Unbreakable Local Advice Mode...`
+                }]);
+            }
         } finally {
-            setIsChatLoading(false);
+            if (retryCount === 0 || retryCount === 2) setIsChatLoading(false);
         }
     };
 

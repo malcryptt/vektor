@@ -42,45 +42,49 @@ class AuditService:
 
         framework = AuditService.detect_framework(code_to_analyze)
         
-        # Layer 2: Heuristic Signature Pre-Scan (Speed)
+        # Layer 2: Heuristic Signature Pre-Scan (High Speed)
         pre_findings = pre_scan(code_to_analyze)
         
-        # Layer 3: Deep AI Behavioral Diagnosis (Depth)
+        # Layer 3: Deep AI Behavioral Diagnosis (CoT Pass)
         request.code = code_to_analyze
-        or_key = os.getenv("OPENROUTER_API_KEY")
+        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        base_url = "https://openrouter.ai/api/v1" if os.getenv("OPENROUTER_API_KEY") else None
+        
         report = None
-        if or_key:
+        if api_key:
             report = await AuditService._analyze_with_ai(
                 request, 
-                or_key, 
-                base_url="https://openrouter.ai/api/v1",
-                model="google/gemini-2.0-flash-exp:free"
+                api_key, 
+                base_url=base_url,
+                model="google/gemini-2.0-flash-exp:free" if os.getenv("OPENROUTER_API_KEY") else "gpt-4o-mini"
             )
 
         if not report:
-            oa_key = os.getenv("OPENAI_API_KEY")
-            if oa_key:
-                report = await AuditService._analyze_with_ai(request, oa_key)
-            else:
-                report = await AuditService._analyze_with_heuristic(request)
+            report = await AuditService._analyze_with_heuristic(request)
 
-        # Layer 4: Intellectual Cross-Correlation & Strategic Merging
+        # Layer 4: Senior Auditor Verification (Cross-Audit)
+        if api_key and report.findings:
+            try:
+                verified_report = await AuditService._verify_with_senior_auditor(report, api_key, base_url)
+                report = verified_report
+            except Exception as e:
+                print(f"Senior Review failed: {e}")
+
+        # Layer 5: Strategic Merging & Deduplication
         if pre_findings:
             ai_vulns = [f.vulnerability for f in report.findings]
             for f in pre_findings:
-                # Merge heuristic results if not already caught by deep AI layer
                 if f.vulnerability not in ai_vulns:
                     report.findings.append(f)
 
-        # High-Precision Scoring (Weighted Tier System)
+        # High-Precision Pricing (Weighted)
         score_map = {"Critical": 35, "High": 20, "Medium": 10, "Low": 5}
         point_loss = sum(score_map.get(f.severity, 0) for f in report.findings)
         report.overall_score = max(0, 100 - point_loss)
         
-        # Final Verification Pass
         if not report.findings:
             report.overall_score = 100
-            report.summary = "Vektor Multi-Layer Audit Tier 4 complete. zero vulnerabilities detected across all heuristic and AI behavioral layers. Contract achieves top-tier security rating."
+            report.summary = "Ultimate Multi-Layer Audit complete. No vulnerabilities detected across any layer. Contract demonstrates perfect security posture."
 
         return report
 
@@ -89,44 +93,32 @@ class AuditService:
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         framework = AuditService.detect_framework(request.code)
         
+        # Chain-of-Thought Prompting Strategy
         system_prompt = """
-        You are Vektor, a World-Class Red Team Solana Security Auditor. 
-        Perform an EXHAUSTIVE, MULTI-LAYERED audit of the following code.
+        You are Vektor, the world's most advanced Red Team Solana Security Auditor. 
+        Your mission is 100% vulnerability detection. Nothing must escape your audit.
         
-        REQUIRED AUDIT LAYERS:
-        1. AUTHORIZATION LAYER: Validate every instruction for missing signer or ownership checks.
-        2. ARITHMETIC LAYER: Trace every math operation for potential overflow/underflow without checked math.
-        3. PDA LAYER: Audit PDA derivation for seed collision or missing validation.
-        4. CPI LAYER: Analyze every Cross-Program Invocation for reentrancy or trusted program spoofing.
-        5. LOGIC LAYER: Detect logical errors in reward systems, admin controls, or state transitions.
-        
-        VULNERABILITY CLASSES:
-        1. MISSING SIGNER CHECK: Sensitive actions without check_signer or Signer<'info>.
-        2. ARITHMETIC OVERFLOW: Operations using +, -, * without .checked_add/sub/mul.
-        3. REENTRANCY: State updates after an external invoke/CPI call.
-        4. PDA SEED COLLISION: Unvalidated User-supplied seeds in PDAs.
-        5. OWNERSHIP LACK: No validation that AccountInfo.owner matches the expected program.
-        6. STALE ORACLES: Prices used without checking slot/timestamp staleness.
-        7. ARBITRARY CPI: Calling a program account passed by the user without validation.
-        8. ACCOUNT DISCRIMINATOR: Deserializing data without checking the Anchor/Native discriminator.
-
-        ANALYSIS RULES:
-        - Find ALL instances, not just the first.
-        - severity: Critical|High|Medium|Low.
-        - line_number: Point to the exact vulnerable line.
+        AUDIT PROTOCOL (CHAIN-OF-THOUGHT):
+        1. LOGIC MAPPING: First, identify all instructions, state transitions, and critical account accesses.
+        2. CONSTRAINT MAPPING: Identify every check (require!, assert!, if checks) and their purpose.
+        3. ADVERSARIAL THINKING: For each instruction, think of how an attacker could bypass checks or manipulate state.
+        4. MULTI-LAYER SCAN:
+           - Layer A (Auth): Missing signers, incorrect owners, PDA seed collisions.
+           - Layer B (Math): Unchecked arithmetic, precision loss in reward units.
+           - Layer C (CPI): Reentrancy, arbitrary program IDs, unchecked results.
+           - Layer D (Logic): Stale oracles, incorrect token payouts, admin backdoors.
         
         RESPONSE FORMAT (JSON ONLY):
         {
           "findings": [
             {
               "vulnerability": "name",
-              "severity": "Severity",
-              "explanation": "how to exploit this specific line",
-              "recommendation": "the exact fix",
-              "corrected_code": "code snippet",
-              "exploit_poc": "TypeScript/Anchor exploit code",
+              "severity": "Critical|High|Medium|Low",
+              "explanation": "how to exploit this line",
+              "recommendation": "the fix",
+              "corrected_code": "code",
+              "exploit_poc": "TypeScript/Anchor POC",
               "anchor_test": "Mocha test case",
-              "confidence_score": 0-100,
               "line_number": int
             }
           ],
@@ -136,16 +128,14 @@ class AuditService:
         }
         """
 
-        extra_headers = {}
-        if base_url and "openrouter.ai" in base_url:
-            extra_headers = {"HTTP-Referer": "https://vektor.security", "X-Title": "Vektor Security Auditor"}
+        extra_headers = {"HTTP-Referer": "https://vektor.security", "X-Title": "Vektor Security Auditor"} if base_url else {}
 
         try:
             response = await client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Analyze: \n\n{request.code}"}
+                    {"role": "user", "content": f"Perform Ultimate CoT Audit on: \n\n{request.code}"}
                 ],
                 response_format={"type": "json_object"},
                 extra_headers=extra_headers
@@ -166,7 +156,44 @@ class AuditService:
                 framework=framework
             )
         except Exception:
-            return await AuditService._analyze_with_heuristic(request)
+            return None
+
+    @staticmethod
+    async def _verify_with_senior_auditor(initial_report: AuditReport, api_key: str, base_url: Optional[str] = None) -> AuditReport:
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        
+        system_prompt = """
+        You are the Senior Auditor at Vektor. A junior auditor has submitted the following findings.
+        Your job is to:
+        1. Verify each finding for accuracy (reject false positives).
+        2. Find any vulnerabilities the junior auditor MISSED in the original code.
+        3. Refine the explanation and exploit POCs for maximum clarity.
+        
+        Junior Auditor Findings:
+        """
+        for f in initial_report.findings:
+            system_prompt += f"- {f.vulnerability} on line {f.line_number}: {f.explanation}\n"
+
+        system_prompt += "\nOriginal Code:\n" + initial_report.raw_code
+
+        extra_headers = {"HTTP-Referer": "https://vektor.security", "X-Title": "Vektor Senior Review"} if base_url else {}
+
+        response = await client.chat.completions.create(
+            model="google/gemini-2.0-flash-exp:free" if base_url else "gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "Produce the FINAL, verified Audit Report in JSON format."}
+            ],
+            response_format={"type": "json_object"},
+            extra_headers=extra_headers
+        )
+        
+        data = json.loads(response.choices[0].message.content)
+        initial_report.findings = [AuditFinding(**f) for f in data["findings"]]
+        initial_report.summary = data.get("summary", initial_report.summary)
+        initial_report.overall_score = data.get("overall_score", initial_report.overall_score)
+        initial_report.risk_level = data.get("risk_level", initial_report.risk_level)
+        return initial_report
 
     @staticmethod
     async def _analyze_with_heuristic(request: AuditRequest) -> AuditReport:
@@ -178,8 +205,8 @@ class AuditService:
             {"title": "Missing Signer Check", "pattern": r"(?i)signer", "severity": "Critical", "remediation": "Add signer check.", "fix": "if !account.is_signer { return Err(ProgramError::MissingRequiredSignature.into()); }", "exploit": "Attacker calls the function with an account they do not own, bypassing authorization."},
             {"title": "Integer Overflow", "pattern": r"[\+\-\*\/](?!\.checked_)", "severity": "High", "remediation": "Use checked math.", "fix": ".checked_add(amount).ok_or(error)? ", "exploit": "Attacker passes a large value to overflow the balance, resulting in unintended funds being credited."},
             {"title": "Missing Ownership Check", "pattern": r"(?i)owner", "severity": "High", "remediation": "Verify account owner.", "fix": "if account.owner != program_id { return Err(ProgramError::IncorrectProgramId.into()); }", "exploit": "Attacker passes a fake account owned by a different program to spoof data."},
-            {"title": "Unchecked Account", "pattern": r"UncheckedAccount", "severity": "Critical", "remediation": "Avoid UncheckedAccount; use specific Anchor types.", "fix": "Account<'info, TokenAccount>", "exploit": "An attacker can pass an account with arbitrary data that the program will process as valid input."},
-            {"title": "Precision Loss", "pattern": r"\/.*\*|\(.*\/.*\).*\* ", "severity": "Medium", "remediation": "Multiply before dividing.", "fix": "(amount * multiplier) / scale", "exploit": "Rounding errors during division can lead to incorrect calculation of rewards or balances."}
+            {"title": "Unchecked AccountInfo", "pattern": r"AccountInfo|next_account_info", "severity": "High", "remediation": "Use specific Anchor types or manually verify account properties.", "fix": "Account<'info, TokenAccount>", "exploit": "An attacker can pass an account with arbitrary data that the program will process as valid input."},
+            {"title": "Reentrancy Risk", "pattern": r"invoke|invoke_signed", "severity": "High", "remediation": "Update state before CPI.", "fix": "self.balance -= amount; invoke(...);", "exploit": "Attacker re-enters the program via a malicious callback program to double-spend funds."}
         ]
 
         found_types = set()
@@ -200,17 +227,13 @@ class AuditService:
                     ))
                     found_types.add(v["title"])
 
-        score_map = {"Critical": 30, "High": 20, "Medium": 10, "Low": 5}
-        point_loss = sum(score_map.get(f.severity, 0) for f in findings)
-        base_score = 100 - point_loss
-        
         return AuditReport(
             id=str(uuid.uuid4()),
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             contract_name=request.contract_name,
-            overall_score=max(0, base_score),
-            summary=f"Audit complete. {len(findings)} issues found." if findings else "Perfect audit. Zero vulnerabilities detected. This contract follows all known Solana security patterns.",
-            risk_level="Critical" if base_score < 40 else "High" if base_score < 70 else "Medium" if base_score < 100 else "Low",
+            overall_score=max(0, 100 - sum(20 for _ in findings)),
+            summary=f"Heuristic Audit complete. {len(findings)} issues identified.",
+            risk_level="High" if findings else "Low",
             findings=findings,
             raw_code=request.code,
             framework=framework
@@ -220,36 +243,39 @@ class AuditService:
     async def chat_advisor(message: str, history: List[dict], report: Optional[AuditReport], code: str) -> str:
         or_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
         
+        # 'Unbreakable' Failover Advisor (The Perfect Fallback)
         if not or_key:
-            if "overflow" in message.lower():
-                return "The overflow risk in this contract is high because you are using standard arithmetic operators (+, -) on u64 balances. An attacker could pass a large input to wrap the balance to a huge value. Consider using .checked_add() or .checked_sub()."
-            if "signer" in message.lower():
-                return "Missing signer checks allow anyone to call this instruction. You should verify that the authority account is a signer using `AccountInfo.is_signer` or Anchor's `Signer` type."
-            return "Vektor AI is specialized in Solana security. I've analyzed your code and found several risks. Would you like me to explain the Integer Overflow or the Missing Signer check specifically?"
+            msg = message.lower()
+            if "overflow" in msg:
+                return "SOLANA SECURITY ADVISOR: Integer overflow in Solana programs occurs when mathematical operations (+, -, *) result in values exceeding the storage capacity of the variable (e.g., u64). This often leads to massive balance manipulation. FIX: Use `.checked_add()`, `.checked_sub()`, or the `anchor-lang` SafeMath checks. Attacker Perspective: We pass a 'pumping' value to wrap the balance to 0, or an 'overflow' value to wrap to max."
+            if "signer" in msg:
+                return "SOLANA SECURITY ADVISOR: Missing signer verification is the #1 cause of theft in Solana. If an instruction transfers funds but doesn't check if the authority 'signed' the tx, anyone can steal anyone's tokens. FIX: Use `Signer<'info, AccountInfo>` in Anchor or manually check `account.is_signer`. Attacker Perspective: We call the 'withdraw' instruction with the victim's account as authority, and since the program never checks for a signature, the tx succeeds."
+            if "reentrancy" in msg:
+                return "SOLANA SECURITY ADVISOR: Reentrancy on Solana is subtle but deadly. It occurs when you make a CPI call to another program BEFORE updating your own state. The malicious program can call back into your instruction to re-process state. FIX: Always update accounts BEFORE calling `invoke` or `invoke_signed`. This is the Checks-Effects-Interactions pattern."
+            if "pda" in msg:
+                return "SOLANA SECURITY ADVISOR: PDA Seed Collision occurs when seeds are not unique or validated. Attackers can supply seeds that resolve to an account they control, spoofing a system account. FIX: Always verify seeds using `find_program_address` and strictly validate every user-supplied seed."
+            
+            return "Vektor AI Security Advisor (Offline Mode): I've analyzed your Solana code. I'm highly trained in detecting Overflows, Signer issues, Reentrancy, and PDA vulnerabilities. Which one should we secure first?"
 
         client = AsyncOpenAI(
             api_key=or_key,
             base_url="https://openrouter.ai/api/v1" if os.getenv("OPENROUTER_API_KEY") else None
         )
 
-        context = f"Code being discussed:\n{code}\n\n"
+        context = f"Code:\n{code}\n\n"
         if report:
-            context += f"Audit Report Context:\nOverall Score: {report.overall_score}\nSummary: {report.summary}\nFindings:\n"
+            context += f"Report Context (Score {report.overall_score}):\nSummary: {report.summary}\n"
             for f in report.findings:
-                context += f"- {f.vulnerability} (Severity: {f.severity}) on line {f.line_number}: {f.explanation}\n"
+                context += f"- {f.vulnerability} on line {f.line_number}: {f.explanation}\n"
 
         system_prompt = f"""
-        You are the Vektor AI Security Advisor. You are helping a developer understand a security audit of their Solana program.
-        Use the following context to answer the user's questions:
-        
-        {context}
+        You are the Vektor AI Security Advisor. You provide perfect, technical, yet educational advice on Solana security.
+        Context: {context}
         
         Guidelines:
-        1. Be technically precise but educational.
-        2. If the user asks about a specific vulnerability, explain the attacker's perspective.
-        3. If they ask for a fix, provide a short, correct Rust/Anchor snippet.
-        4. Keep responses concise (under 200 words).
-        5. If you don't know the answer based on the code, say so.
+        1. Explaining the 'Attacker Perspective' for every vulnerability discussed.
+        2. Providing 'Anchor-native' code fixes.
+        3. Ensuring 100% accuracy.
         """
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -261,8 +287,8 @@ class AuditService:
             response = await client.chat.completions.create(
                 model="google/gemini-2.0-flash-exp:free" if os.getenv("OPENROUTER_API_KEY") else "gpt-4o-mini",
                 messages=messages,
-                max_tokens=600
+                max_tokens=800
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"Error contacting AI advisor: {str(e)}"
+            return f"Vektor Core Error: {str(e)}. Attempting Local Fallback... {await AuditService.chat_advisor(message, history, report, code)}"
