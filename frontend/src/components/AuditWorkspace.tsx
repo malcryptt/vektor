@@ -208,12 +208,13 @@ export default function AuditWorkspace() {
     const editorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
 
-    // Persist History (Fix: Audit History doesn't work)
+    // Persist History (Standardized Vektor History)
     useEffect(() => {
         const saved = localStorage.getItem('vektor_audit_history');
         if (saved) {
             try {
-                setAuditHistory(JSON.parse(saved));
+                const parsed = JSON.parse(saved);
+                setAuditHistory(parsed);
             } catch (e) {
                 console.error("Failed to load history", e);
             }
@@ -223,18 +224,6 @@ export default function AuditWorkspace() {
     useEffect(() => {
         if (auditHistory.length > 0) {
             localStorage.setItem('vektor_audit_history', JSON.stringify(auditHistory));
-        }
-    }, [auditHistory]);
-
-    // Persist history to localStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('vektor_history');
-        if (saved) setAuditHistory(JSON.parse(saved));
-    }, []);
-
-    useEffect(() => {
-        if (auditHistory.length > 0) {
-            localStorage.setItem('vektor_history', JSON.stringify(auditHistory));
         }
     }, [auditHistory]);
 

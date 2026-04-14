@@ -4,9 +4,33 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+import os
+import json
+import pickle
+from .models.models import AuditReport
+
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Vektor Security API")
-reports_db = {} # In-memory storage for demo
+
+# Persistent storage for reports
+REPORTS_FILE = "reports_db.pkl"
+reports_db: Dict[str, AuditReport] = {}
+
+if os.path.exists(REPORTS_FILE):
+    try:
+        with open(REPORTS_FILE, "rb") as f:
+            reports_db = pickle.load(f)
+            print(f"Loaded {len(reports_db)} reports from {REPORTS_FILE}")
+    except Exception as e:
+        print(f"Failed to load reports: {e}")
+
+def save_reports():
+    try:
+        with open(REPORTS_FILE, "wb") as f:
+            pickle.dump(reports_db, f)
+    except Exception as e:
+        print(f"Failed to save reports: {e}")
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -26,8 +50,6 @@ from .models.models import AuditRequest, AuditReport
 from fastapi.responses import Response
 from typing import Dict
 
-# Audit history (in-memory mock)
-reports_db: Dict[str, AuditReport] = {}
 
 @app.get("/")
 async def root():
@@ -38,6 +60,7 @@ async def root():
 async def create_audit(request: Request, audit_req: AuditRequest):
     report = await AuditService.analyze_code(audit_req)
     reports_db[report.id] = report
+    save_reports()
     return report
 
 @app.get("/audit/{audit_id}")
