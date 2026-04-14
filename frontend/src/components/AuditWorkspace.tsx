@@ -271,7 +271,7 @@ export default function AuditWorkspace() {
         await new Promise(r => setTimeout(r, 15));
         setStatusMessage("Running AI Deep Analysis...");
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
             const response = await fetch(`${apiUrl}/audit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -313,7 +313,7 @@ export default function AuditWorkspace() {
         setIsChatLoading(true);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
             const response = await fetch(`${apiUrl}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -356,7 +356,7 @@ export default function AuditWorkspace() {
             await new Promise(r => setTimeout(r, 800));
             setStatusMessage("Downloading verified source code...");
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
             const res = await fetch(`${apiUrl}/on-chain/${programId}`);
 
             if (!res.ok) throw new Error("Program not found or unverified.");
@@ -393,7 +393,7 @@ export default function AuditWorkspace() {
                     setIsLoading(true);
                     setStatusMessage("Analyzing Multi-file ZIP Bundle...");
                     try {
-                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
                         const res = await fetch(`${apiUrl}/audit`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -420,7 +420,7 @@ export default function AuditWorkspace() {
 
     const handleDownloadPDF = () => {
         if (!report) return;
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
         window.open(`${apiUrl}/audit/${report.id}/pdf`, '_blank');
     };
 
@@ -634,7 +634,7 @@ export default function AuditWorkspace() {
                                                 setActiveTab('report');
                                                 return;
                                             }
-                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
                                             fetch(`${apiUrl}/audit/${id}`)
                                                 .then(res => res.json())
                                                 .then(data => {
@@ -670,7 +670,7 @@ export default function AuditWorkspace() {
                                                 setStatusMessage("Minting Metaplex Audit NFT...");
                                                 setIsLoading(true);
                                                 try {
-                                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/audit/${report.id}/certificate`);
+                                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com'}/audit/${report.id}/certificate`);
                                                     const data = await res.json();
                                                     alert(`Success! Audit Certificate Minted: ${data.mint_address}\nView on Explorer: ${data.explorer_url}`);
                                                 } catch (e) {
@@ -732,7 +732,7 @@ export default function AuditWorkspace() {
                                                     setActiveTab('report');
                                                     return;
                                                 }
-                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com';
                                                 fetch(`${apiUrl}/audit/${id}`)
                                                     .then(res => res.json())
                                                     .then(data => {
@@ -748,7 +748,7 @@ export default function AuditWorkspace() {
                                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted mb-4">Embed this badge in your README</h3>
                                         <div className="flex flex-col gap-4">
                                             <img
-                                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/badge/${report.overall_score}`}
+                                                src={`${process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com'}/badge/${report.overall_score}`}
                                                 alt="Vektor Score Badge"
                                                 className="h-6 w-auto object-contain self-start"
                                             />
@@ -756,7 +756,7 @@ export default function AuditWorkspace() {
                                                 type="text"
                                                 readOnly
                                                 onClick={(e) => (e.target as HTMLInputElement).select()}
-                                                value={`[![Vektor Score](${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/badge/${report.overall_score})](https://vektor.security)`}
+                                                value={`[![Vektor Score](${process.env.NEXT_PUBLIC_API_URL || 'https://vektor-backend-jiu3.onrender.com'}/badge/${report.overall_score})](https://vektor.security)`}
                                                 className="w-full bg-black/40 border border-white/10 rounded-md p-3 text-[10px] sm:text-xs font-mono text-muted focus:outline-none focus:border-primary/50"
                                             />
                                         </div>
