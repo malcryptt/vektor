@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, Play, Loader2, AlertCircle } from 'lucide-react';
+import { Code2, Play, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,6 +15,23 @@ export default function CodeSubmission() {
     const [contractName, setContractName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            setCode(text);
+            if (!contractName) {
+                setContractName(file.name.split('.')[0]);
+            }
+            // Reset input so the same file can be uploaded again if needed
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsText(file);
+    };
 
     const handleAudit = async () => {
         if (!code) return;
@@ -39,7 +56,7 @@ export default function CodeSubmission() {
         <div className="w-full max-w-5xl mx-auto px-4 py-12 md:py-20" id="audit-tool">
             <div className="glass rounded-2xl overflow-hidden border border-white/10 glow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-white/5 bg-white/[0.02] gap-4">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="flex items-center gap-2 w-full md:w-auto">
                         <input
                             type="text"
                             placeholder="Contract Name (e.g. CandyMachine)"
@@ -47,6 +64,22 @@ export default function CodeSubmission() {
                             value={contractName}
                             onChange={(e) => setContractName(e.target.value)}
                         />
+                        <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".rs,.ts,.js,.json,.txt"
+                            onChange={handleFileUpload}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-2 p-2 px-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10 shrink-0 text-xs text-gray-300"
+                            title="Upload Code File"
+                        >
+                            <Upload className="w-4 h-4" />
+                            <span className="hidden md:inline">Upload File</span>
+                        </button>
                     </div>
                     <button
                         onClick={handleAudit}

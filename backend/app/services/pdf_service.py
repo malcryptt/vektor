@@ -33,13 +33,13 @@ class PDFService:
         elements.append(Spacer(1, 20))
 
         for finding in report.findings:
-            elements.append(Paragraph(f"<b>{finding.title}</b> ({finding.severity})", styles['Heading3']))
-            elements.append(Paragraph(f"<b>Description:</b> {finding.description}", styles['Normal']))
+            elements.append(Paragraph(f"<b>{finding.vulnerability}</b> ({finding.severity})", styles['Heading3']))
+            elements.append(Paragraph(f"<b>Description:</b> {finding.explanation}", styles['Normal']))
             
-            if finding.suggested_fix_code:
+            if getattr(finding, 'corrected_code', None):
                 elements.append(Paragraph("<b>Suggested Fix:</b>", styles['Normal']))
                 elements.append(Spacer(1, 5))
-                elements.append(XPreformatted(finding.suggested_fix_code, code_style))
+                elements.append(XPreformatted(finding.corrected_code, code_style))
                 
             elements.append(Spacer(1, 10))
 

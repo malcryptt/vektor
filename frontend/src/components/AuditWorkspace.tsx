@@ -464,6 +464,36 @@ export default function AuditWorkspace() {
 
                         <div className="hidden md:block h-6 w-[1px] bg-white/10 mx-2" />
 
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="file"
+                                id="workspace-upload"
+                                className="hidden"
+                                accept=".rs,.ts,.js,.json,.txt"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        setCode(event.target?.result as string);
+                                        setProgramId(file.name.split('.')[0]);
+                                    };
+                                    reader.readAsText(file);
+                                    e.target.value = '';
+                                }}
+                            />
+                            <button
+                                onClick={() => document.getElementById('workspace-upload')?.click()}
+                                className="flex items-center gap-1.5 p-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10 shrink-0 text-[10px] md:text-xs text-gray-300 font-semibold"
+                                title="Upload File"
+                            >
+                                <FileUp className="w-3.5 h-3.5" />
+                                <span className="hidden md:inline">Upload</span>
+                            </button>
+                        </div>
+
+                        <div className="hidden md:block h-6 w-[1px] bg-white/10 mx-2" />
+
                         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide no-scrollbar">
                             <button onClick={() => setCode(SAMPLES.vulnerable)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Vulnerable</button>
                             <button onClick={() => setCode(SAMPLES.clean)} className="shrink-0 text-[10px] bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md border border-white/10 transition-colors">Clean</button>
